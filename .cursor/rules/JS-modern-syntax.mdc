@@ -1,0 +1,137 @@
+---
+description: Modern JavaScript ES6+ syntax, array methods, and functional programming patterns
+globs: ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# JS-Modern Syntax: Contemporary JavaScript Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure the use of modern, efficient, and maintainable JavaScript syntax and patterns.
+
+## Modern JavaScript Protocol
+
+### ES6+ Features
+```javascript
+// ✅ Good - Arrow functions
+const multiply = (a, b) => a * b;
+
+// ✅ Good - Destructuring
+const { name, age, email } = user;
+const [first, second, ...rest] = array;
+
+// ✅ Good - Template literals
+const message = `Hello ${name}, you are ${age} years old`;
+
+// ✅ Good - Spread operator
+const newArray = [...oldArray, newItem];
+const newObject = { ...oldObject, newProperty: value };
+
+// ✅ Good - Default parameters
+function greet(name = 'Guest', greeting = 'Hello') {
+  return `${greeting}, ${name}!`;
+}
+```
+
+### Array Methods
+```javascript
+// ✅ Good - Modern array methods
+const numbers = [1, 2, 3, 4, 5];
+
+// Map
+const doubled = numbers.map(n => n * 2);
+
+// Filter
+const evens = numbers.filter(n => n % 2 === 0);
+
+// Reduce
+const sum = numbers.reduce((acc, n) => acc + n, 0);
+
+// Find
+const firstEven = numbers.find(n => n % 2 === 0);
+
+// Some/Every
+const hasEven = numbers.some(n => n % 2 === 0);
+const allPositive = numbers.every(n => n > 0);
+```
+
+### Object Methods
+```javascript
+// ✅ Good - Object destructuring and shorthand
+const name = 'John';
+const age = 30;
+
+const person = { name, age }; // Shorthand property
+
+// ✅ Good - Object methods
+const obj = {
+  method() {
+    return 'method';
+  },
+  
+  get computed() {
+    return this.value * 2;
+  }
+};
+
+// ✅ Good - Object.entries, Object.keys, Object.values
+const entries = Object.entries(obj);
+const keys = Object.keys(obj);
+const values = Object.values(obj);
+```
+
+### Async/Await
+```javascript
+// ✅ Good - Async/await instead of promises
+async function fetchUserData(id) {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+    const user = await response.json();
+    return user;
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    throw error;
+  }
+}
+
+// ✅ Good - Promise.all for parallel requests
+async function fetchMultipleUsers(ids) {
+  const promises = ids.map(id => fetchUserData(id));
+  return Promise.all(promises);
+}
+```
+
+### Modules
+```javascript
+// ✅ Good - ES6 modules
+import { useState, useEffect } from 'react';
+import defaultExport from './module';
+import * as utils from './utils';
+
+// ✅ Good - Named exports
+export const helper = () => {};
+export default class MyClass {}
+
+// ✅ Good - Dynamic imports
+const module = await import('./dynamic-module');
+```
+
+### Optional Chaining and Nullish Coalescing
+```javascript
+// ✅ Good - Optional chaining
+const userName = user?.profile?.name;
+const firstItem = array?.[0];
+
+// ✅ Good - Nullish coalescing
+const displayName = user.name ?? 'Anonymous';
+const count = items?.length ?? 0;
+```
+
+## Remember
+
+**Always use modern ES6+ syntax, prefer functional programming patterns, and leverage built-in methods for cleaner, more maintainable code.**
+
+---
+
+*This rule ensures the use of modern, efficient, and maintainable JavaScript syntax and patterns.*

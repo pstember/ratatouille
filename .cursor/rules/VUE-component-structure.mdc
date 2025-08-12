@@ -1,0 +1,243 @@
+---
+description: Vue component structure, SFC organization, and component architecture best practices
+globs: ["**/*.vue", "**/*.ts", "**/*.js"]
+alwaysApply: false
+---
+
+# VUE-Component Structure: Vue Component Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure consistent, maintainable, and performant Vue component architecture.
+
+## Component Structure Protocol
+
+### Single File Component (SFC) Organization
+```vue
+<template>
+  <!-- Template content -->
+</template>
+
+<script setup lang="ts">
+// Imports
+import { ref, computed, onMounted } from 'vue'
+import type { PropType } from 'vue'
+
+// Types and interfaces
+interface Props {
+  title: string
+  items: Item[]
+  loading?: boolean
+}
+
+// Props definition
+const props = withDefaults(defineProps<Props>(), {
+  loading: false
+})
+
+// Emits definition
+const emit = defineEmits<{
+  'item-click': [item: Item]
+  'update:title': [title: string]
+}>()
+
+// Reactive data
+const searchQuery = ref('')
+const selectedItems = ref<Item[]>([])
+
+// Computed properties
+const filteredItems = computed(() => {
+  return props.items.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
+
+// Methods
+const handleItemClick = (item: Item) => {
+  emit('item-click', item)
+}
+
+// Lifecycle hooks
+onMounted(() => {
+  console.log('Component mounted')
+})
+</script>
+
+<style scoped>
+/* Component styles */
+</style>
+```
+
+### Component Naming and File Structure
+```vue
+<!-- ✅ Good - PascalCase component name -->
+<!-- UserProfile.vue -->
+<template>
+  <div class="user-profile">
+    <h2>{{ user.name }}</h2>
+    <p>{{ user.email }}</p>
+  </div>
+</template>
+
+<!-- ✅ Good - Descriptive file names -->
+<!-- RecipeCard.vue, UserList.vue, SearchBar.vue -->
+
+<!-- ✅ Good - Organized directory structure -->
+<!-- components/
+  ├── ui/
+  │   ├── Button.vue
+  │   ├── Input.vue
+  │   └── Modal.vue
+  ├── forms/
+  │   ├── LoginForm.vue
+  │   └── RegistrationForm.vue
+  └── features/
+      ├── RecipeCard.vue
+      └── UserProfile.vue
+-->
+```
+
+### Props and Emits Best Practices
+```vue
+<script setup lang="ts">
+// ✅ Good - Type-safe props with defaults
+interface RecipeCardProps {
+  recipe: Recipe
+  showNutrition?: boolean
+  clickable?: boolean
+}
+
+const props = withDefaults(defineProps<RecipeCardProps>(), {
+  showNutrition: true,
+  clickable: true
+})
+
+// ✅ Good - Type-safe emits
+const emit = defineEmits<{
+  'recipe-click': [recipe: Recipe]
+  'favorite-toggle': [recipeId: string, isFavorite: boolean]
+}>()
+
+// ✅ Good - Computed props
+const isFavorite = computed(() => props.recipe.isFavorite)
+const nutritionInfo = computed(() => 
+  props.showNutrition ? props.recipe.nutrition : null
+)
+</script>
+```
+
+### Composition API Patterns
+```vue
+<script setup lang="ts">
+// ✅ Good - Extract reusable logic into composables
+import { useRecipe } from '@/composables/useRecipe'
+import { useSearch } from '@/composables/useSearch'
+
+const { recipes, loading, error, fetchRecipes } = useRecipe()
+const { query, filteredItems } = useSearch(recipes)
+
+// ✅ Good - Reactive refs for local state
+const selectedRecipe = ref<Recipe | null>(null)
+const showModal = ref(false)
+
+// ✅ Good - Computed properties for derived state
+const hasRecipes = computed(() => recipes.value.length > 0)
+const selectedRecipeName = computed(() => 
+  selectedRecipe.value?.name ?? 'No recipe selected'
+)
+</script>
+```
+
+### Template Best Practices
+```vue
+<template>
+  <!-- ✅ Good - Semantic HTML structure -->
+  <article class="recipe-card">
+    <header class="recipe-header">
+      <h3 class="recipe-title">{{ recipe.name }}</h3>
+      <CuisineBadge :cuisine="recipe.cuisine" />
+    </header>
+    
+    <div class="recipe-content">
+      <img 
+        :src="recipe.image" 
+        :alt="recipe.name"
+        class="recipe-image"
+        loading="lazy"
+      />
+      
+      <p class="recipe-description">{{ recipe.description }}</p>
+    </div>
+    
+    <footer class="recipe-footer">
+      <NutritionalInfo 
+        v-if="showNutrition"
+        :nutrition="recipe.nutrition" 
+      />
+      
+      <button 
+        @click="handleRecipeClick"
+        :disabled="!clickable"
+        class="recipe-button"
+      >
+        View Recipe
+      </button>
+    </footer>
+  </article>
+</template>
+```
+
+### Style Organization
+```vue
+<style scoped>
+/* ✅ Good - Scoped styles with BEM methodology */
+.recipe-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.recipe-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.recipe-card__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.recipe-card__content {
+  margin-bottom: 1rem;
+}
+
+.recipe-card__image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.recipe-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+</style>
+```
+
+## Remember
+
+**Always use consistent component structure, type-safe props and emits, semantic HTML, and organized styles to create maintainable Vue components.**
+
+---
+
+*This rule ensures consistent, maintainable, and performant Vue component architecture.*

@@ -1,0 +1,87 @@
+---
+description: TypeScript type safety best practices and strict typing guidelines
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# TS-Type Safety: Strict TypeScript Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure robust type safety and prevent runtime errors through comprehensive TypeScript practices.
+
+## Type Safety Protocol
+
+### Strict TypeScript Configuration
+- **Enable strict mode** in `tsconfig.json`
+- **Use explicit types** instead of `any`
+- **Avoid type assertions** unless absolutely necessary
+- **Prefer interfaces over types** for object shapes
+
+### Type Definitions
+```typescript
+// ✅ Good - Explicit interface
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: Date;
+}
+
+// ❌ Bad - Using any
+const user: any = { id: 1, name: "John" };
+
+// ✅ Good - Generic types
+function fetchData<T>(url: string): Promise<T> {
+  return fetch(url).then(res => res.json());
+}
+
+// ✅ Good - Union types
+type Status = 'loading' | 'success' | 'error';
+```
+
+### Null Safety
+```typescript
+// ✅ Good - Optional chaining
+const userName = user?.profile?.name;
+
+// ✅ Good - Nullish coalescing
+const displayName = user.name ?? 'Anonymous';
+
+// ✅ Good - Type guards
+function isUser(obj: unknown): obj is User {
+  return typeof obj === 'object' && obj !== null && 'id' in obj;
+}
+```
+
+### Function Types
+```typescript
+// ✅ Good - Explicit parameter and return types
+function calculateTotal(items: CartItem[]): number {
+  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+// ✅ Good - Function type aliases
+type EventHandler<T = Event> = (event: T) => void;
+type AsyncFunction<T> = () => Promise<T>;
+```
+
+### Generic Constraints
+```typescript
+// ✅ Good - Constrained generics
+interface HasId {
+  id: string | number;
+}
+
+function findById<T extends HasId>(items: T[], id: T['id']): T | undefined {
+  return items.find(item => item.id === id);
+}
+```
+
+## Remember
+
+**Always use explicit types, avoid `any`, and leverage TypeScript's type system to catch errors at compile time.**
+
+---
+
+*This rule ensures type safety and prevents runtime errors through comprehensive TypeScript practices.*

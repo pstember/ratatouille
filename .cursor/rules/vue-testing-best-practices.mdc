@@ -1,0 +1,318 @@
+# Vue 3 Testing Best Practices
+
+**CRITICAL**: These practices prevent the most common Vue 3 testing failures and ensure reliable test generation.
+
+## Vue 3 Import Requirements
+
+### Always Import Vue Composables
+**NEVER** rely on auto-imports in test environments. Always import Vue 3 composables explicitly:
+
+```typescript
+// ✅ CORRECT - Always import what you use
+import { ref, computed, reactive, watch, onMounted } from 'vue'
+
+// ❌ WRONG - Will cause "ref is not defined" errors
+// Missing imports will break tests
+```
+
+### Required Import Patterns
+```typescript
+// For reactive state
+import { ref, reactive } from 'vue'
+
+// For computed properties
+import { computed } from 'vue'
+
+// For lifecycle hooks
+import { onMounted, onUnmounted, onUpdated } from 'vue'
+
+// For watchers
+import { watch, watchEffect } from 'vue'
+
+// For Pinia stores
+import { defineStore } from 'pinia'
+
+// For Vue composables
+import { useRouter, useRoute } from 'vue-router'
+```
+
+## Test Setup Best Practices
+
+### 1. Proper Mock Configuration
+```typescript
+// tests/setup/test-utils.ts
+import { config } from '@vue/test-utils'
+import { vi } from 'vitest'
+
+// Mock Nuxt composables globally
+vi.mock('nuxt/app', () => ({
+  definePageMeta: vi.fn()
+}))
+
+vi.mock('#app', () => ({
+  definePageMeta: vi.fn()
+}))
+
+vi.mock('#imports', () => ({
+  ref: vi.fn((value) => ({ value })),
+  computed: vi.fn((fn) => ({ value: fn() })),
+  onMounted: vi.fn((fn) => fn()),
+  definePageMeta: vi.fn()
+}))
+
+// Mock global definePageMeta
+global.definePageMeta = vi.fn()
+
+// Mock Nuxt components
+vi.mock('#components', () => ({
+  RecipeSkeleton: { template: '<div class="recipe-skeleton">Loading...</div>' },
+  RecipeCard: { template: '<div class="recipe-card">Recipe Card</div>' }
+}))
+```
+
+### 2. Async Test Functions
+Always use `async/await` for tests involving component updates:
+
+```typescript
+// ✅ CORRECT
+it('should update component state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+
+// ❌ WRONG
+it('should update component state', () => {
+  wrapper.vm.isLoading = true
+  wrapper.vm.$nextTick() // Missing await
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+```
+
+### 3. Element Selection Patterns
+```typescript
+// ✅ CORRECT - Use findAll and find
+const buttons = wrapper.findAll('button')
+const button = buttons.find(button => button.text().includes('Discover More'))
+if (button) {
+  await button.trigger('click')
+}
+
+// ❌ WRONG - Don't use filter on single elements
+const button = wrapper.find('button').filter(button => button.text().includes('Discover More'))
+```
+
+### 4. Mock Management
+```typescript
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockFetch.mockClear()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+```
+
+## Common Test Patterns
+
+### Component State Testing
+```typescript
+it('should show loading state initially', async () => {
+  // Set component state
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  
+  // Test the result
+  expect(wrapper.find('.recipe-skeleton').exists()).toBe(true)
+})
+```
+
+### Button Click Testing
+```typescript
+it('should trigger action when button is clicked', async () => {
+  // Clear mocks to reset call count
+  mockFetch.mockClear()
+  
+  // Ensure component is in correct state
+  wrapper.vm.isLoading = false
+  await wrapper.vm.$nextTick()
+  
+  // Find and click button
+  const button = wrapper.find('button')
+  expect(button.exists()).toBe(true)
+  expect(button.attributes('disabled')).toBeUndefined()
+  
+  await button.trigger('click')
+  await wrapper.vm.$nextTick()
+  
+  // Verify the expected behavior
+  expect(mockFetch).toHaveBeenCalled()
+})
+```
+
+### Error Handling Testing
+```typescript
+it('should handle API errors gracefully', async () => {
+  const error = { data: { message: 'API Error' } }
+  mockFetch.mockRejectedValue(error)
+  
+  await wrapper.vm.fetchData()
+  await wrapper.vm.$nextTick()
+  
+  expect(wrapper.text()).toContain('Something went wrong')
+  expect(wrapper.text()).toContain('API Error')
+})
+```
+
+### Store Testing with Pinia
+```typescript
+describe('Recipes Store', () => {
+  let store: any
+
+  beforeEach(() => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    store = useRecipesStore()
+  })
+
+  it('initializes with correct default state', () => {
+    expect(store.recipes).toEqual([])
+    expect(store.loading).toBe(false)
+    expect(store.error).toBe(null)
+  })
+
+  it('fetches recipes successfully', async () => {
+    const mockRecipes = [{ id: '1', name: 'Recipe 1' }]
+    mockFetch.mockResolvedValueOnce({ results: mockRecipes })
+
+    await store.fetchRecipes()
+
+    expect(store.recipes).toEqual(mockRecipes)
+    expect(store.loading).toBe(false)
+    expect(store.error).toBe(null)
+  })
+})
+```
+
+## Troubleshooting Common Issues
+
+### 1. "ref is not defined" Errors
+**Problem**: Vue 3 composables not imported
+**Solution**: Always import Vue composables explicitly:
+```typescript
+import { ref, computed, onMounted } from 'vue'
+```
+
+### 2. Test Selector Issues
+**Problem**: Malformed selectors or missing elements
+**Solution**: Use proper element selection:
+```typescript
+// ✅ Correct
+const buttons = wrapper.findAll('button')
+const button = buttons.find(button => button.text().includes('Discover More'))
+
+// ❌ Wrong
+const button = wrapper.find('button').filter(button => button.text().includes('Discover More'))
+```
+
+### 3. Async Test Failures
+**Problem**: Missing async/await in test functions
+**Solution**: Always use async for component updates:
+```typescript
+// ✅ Correct
+it('should update state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+```
+
+### 4. Mock Interference
+**Problem**: Mocks not cleared between tests
+**Solution**: Clear mocks in beforeEach:
+```typescript
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockFetch.mockClear()
+})
+```
+
+### 5. Component State Testing
+**Problem**: Testing component state without proper setup
+**Solution**: Set component state and wait for updates:
+```typescript
+it('should show loading state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.recipe-skeleton').exists()).toBe(true)
+})
+```
+
+## Test File Structure
+
+### Component Test Template
+```typescript
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import ComponentName from '~/components/ComponentName.vue'
+
+describe('ComponentName', () => {
+  let pinia: any
+
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('Rendering', () => {
+    it('renders correctly with required props', () => {
+      const wrapper = mount(ComponentName, {
+        props: { requiredProp: 'value' },
+        global: { plugins: [pinia] }
+      })
+
+      expect(wrapper.exists()).toBe(true)
+      expect(wrapper.text()).toContain('expected text')
+    })
+  })
+
+  describe('User Interactions', () => {
+    it('emits event when button is clicked', async () => {
+      const wrapper = mount(ComponentName, {
+        props: { requiredProp: 'value' },
+        global: { plugins: [pinia] }
+      })
+
+      await wrapper.find('button').trigger('click')
+      
+      expect(wrapper.emitted('click')).toBeTruthy()
+      expect(wrapper.emitted('click')).toHaveLength(1)
+    })
+  })
+})
+```
+
+## Remember
+
+**CRITICAL**: Always import Vue 3 composables explicitly in script setup blocks to prevent "ref is not defined" errors.
+
+**Always use async/await for tests involving component updates or API calls.**
+
+**Clear mocks between tests to prevent interference.**
+
+**Use proper element selection patterns with findAll and find.**
+
+---
+
+*This rule ensures reliable Vue 3 testing practices and prevents common test failures.*
+description:
+globs:
+alwaysApply: false
+---

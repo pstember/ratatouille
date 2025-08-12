@@ -1,0 +1,264 @@
+---
+description: Vue state management with Pinia, composables, and local vs global state patterns
+globs: ["**/*.vue", "**/*.ts", "**/*.js"]
+alwaysApply: false
+---
+
+# VUE-State Management: Pinia and Composables Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure scalable, maintainable, and performant state management in Vue applications.
+
+## State Management Protocol
+
+### Pinia Store Structure
+```typescript
+// ✅ Good - Well-organized Pinia store
+import { defineStore } from 'pinia'
+import type { Recipe, RecipeFilters } from '@/types/recipe'
+
+interface RecipeState {
+  recipes: Recipe[]
+  loading: boolean
+  error: string | null
+  filters: RecipeFilters
+  selectedRecipe: Recipe | null
+}
+
+export const useRecipeStore = defineStore('recipe', {
+  state: (): RecipeState => ({
+    recipes: [],
+    loading: false,
+    error: null,
+    filters: {
+      cuisine: '',
+      search: '',
+      maxTime: null
+    },
+    selectedRecipe: null
+  }),
+
+  getters: {
+    // ✅ Good - Computed getters
+    filteredRecipes: (state) => {
+      return state.recipes.filter(recipe => {
+        const matchesCuisine = !state.filters.cuisine || 
+          recipe.cuisine === state.filters.cuisine
+        const matchesSearch = !state.filters.search || 
+          recipe.name.toLowerCase().includes(state.filters.search.toLowerCase())
+        const matchesTime = !state.filters.maxTime || 
+          recipe.cookTime <= state.filters.maxTime
+        
+        return matchesCuisine && matchesSearch && matchesTime
+      })
+    },
+
+    hasRecipes: (state) => state.recipes.length > 0,
+    
+    getRecipeById: (state) => (id: string) => 
+      state.recipes.find(recipe => recipe.id === id)
+  },
+
+  actions: {
+    // ✅ Good - Async actions with proper error handling
+    async fetchRecipes() {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const response = await fetch('/api/recipes')
+        const recipes = await response.json()
+        this.recipes = recipes
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to fetch recipes'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // ✅ Good - Synchronous actions
+    setSelectedRecipe(recipe: Recipe | null) {
+      this.selectedRecipe = recipe
+    },
+
+    updateFilters(filters: Partial<RecipeFilters>) {
+      this.filters = { ...this.filters, ...filters }
+    },
+
+    // ✅ Good - Actions that call other actions
+    async refreshRecipes() {
+      this.recipes = []
+      await this.fetchRecipes()
+    }
+  }
+})
+```
+
+### Composables for Reusable Logic
+```typescript
+// ✅ Good - Custom composable for API calls
+export function useApi<T>(url: string) {
+  const data = ref<T | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  const fetchData = async () => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      data.value = await response.json()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Unknown error'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return {
+    data: readonly(data),
+    loading: readonly(loading),
+    error: readonly(error),
+    fetchData
+  }
+}
+
+// ✅ Good - Composable for form handling
+export function useForm<T extends Record<string, any>>(initialData: T) {
+  const formData = ref<T>({ ...initialData })
+  const errors = ref<Partial<Record<keyof T, string>>>({})
+  const isSubmitting = ref(false)
+
+  const validate = (validators: Record<keyof T, (value: any) => string | null>) => {
+    errors.value = {}
+    let isValid = true
+
+    Object.keys(validators).forEach(key => {
+      const validator = validators[key as keyof T]
+      const value = formData.value[key as keyof T]
+      const error = validator(value)
+      
+      if (error) {
+        errors.value[key as keyof T] = error
+        isValid = false
+      }
+    })
+
+    return isValid
+  }
+
+  const reset = () => {
+    formData.value = { ...initialData }
+    errors.value = {}
+  }
+
+  return {
+    formData,
+    errors: readonly(errors),
+    isSubmitting: readonly(isSubmitting),
+    validate,
+    reset
+  }
+}
+```
+
+### Component Integration
+```vue
+<script setup lang="ts">
+// ✅ Good - Using stores in components
+import { useRecipeStore } from '@/stores/recipe'
+import { useApi } from '@/composables/useApi'
+
+const recipeStore = useRecipeStore()
+
+// ✅ Good - Destructuring store for reactivity
+const { recipes, loading, error, filteredRecipes } = storeToRefs(recipeStore)
+const { fetchRecipes, setSelectedRecipe } = recipeStore
+
+// ✅ Good - Using composables
+const { data: userData, fetchData: fetchUser } = useApi<User>('/api/user')
+
+// ✅ Good - Computed properties that depend on store state
+const hasRecipes = computed(() => recipes.value.length > 0)
+const recipeCount = computed(() => filteredRecipes.value.length)
+
+// ✅ Good - Methods that dispatch store actions
+const handleRecipeSelect = (recipe: Recipe) => {
+  setSelectedRecipe(recipe)
+}
+
+// ✅ Good - Lifecycle hooks for data fetching
+onMounted(async () => {
+  await fetchRecipes()
+  await fetchUser()
+})
+</script>
+```
+
+### Local vs Global State
+```vue
+<script setup lang="ts">
+// ✅ Good - Local component state
+const showModal = ref(false)
+const searchQuery = ref('')
+const selectedItems = ref<string[]>([])
+
+// ✅ Good - Global state from store
+const recipeStore = useRecipeStore()
+const { recipes, loading } = storeToRefs(recipeStore)
+
+// ✅ Good - Computed local state
+const filteredLocalItems = computed(() => 
+  recipes.value.filter(recipe => 
+    recipe.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+)
+
+// ✅ Good - Local state that doesn't need to be global
+const isExpanded = ref(false)
+const animationState = ref<'idle' | 'animating'>('idle')
+</script>
+```
+
+### State Persistence
+```typescript
+// ✅ Good - Persisting state to localStorage
+export const usePersistedStore = defineStore('persisted', {
+  state: () => ({
+    userPreferences: {
+      theme: 'light',
+      language: 'en',
+      notifications: true
+    }
+  }),
+
+  actions: {
+    updatePreferences(preferences: Partial<UserPreferences>) {
+      this.userPreferences = { ...this.userPreferences, ...preferences }
+      // Persist to localStorage
+      localStorage.setItem('userPreferences', JSON.stringify(this.userPreferences))
+    }
+  },
+
+  // ✅ Good - Hydrating state from localStorage
+  hydrate() {
+    const stored = localStorage.getItem('userPreferences')
+    if (stored) {
+      this.userPreferences = JSON.parse(stored)
+    }
+  }
+})
+```
+
+## Remember
+
+**Use Pinia for global state, composables for reusable logic, and local refs for component-specific state. Always structure stores with clear state, getters, and actions.**
+
+---
+
+*This rule ensures scalable, maintainable, and performant state management in Vue applications.*

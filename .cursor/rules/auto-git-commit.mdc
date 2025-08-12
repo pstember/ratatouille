@@ -1,0 +1,123 @@
+---
+description: Automatic Git commits with conventional commit format after Cursor changes
+globs: ["**/*"]
+alwaysApply: false
+---
+# Auto Git Commit: Automatic Conventional Commits
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure consistent, meaningful Git history by automatically committing changes with proper conventional commit messages.
+
+## Automatic Commit Protocol
+
+After **EVERY** change performed by Cursor, **ALWAYS** automatically commit the modified files to Git.
+
+### Commit Process
+1. **Stage all changed files** automatically
+2. **Create conventional commit message** based on the change type
+3. **Include detailed explanation** of what was changed and why
+4. **Reference the original prompts** that led to the changes
+
+### Conventional Commit Format
+
+Use the standard conventional commit format for the commit title:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+#### Commit Types
+- **feat**: A new feature
+- **fix**: A bug fix
+- **docs**: Documentation only changes
+- **style**: Changes that do not affect the meaning of the code
+- **refactor**: A code change that neither fixes a bug nor adds a feature
+- **perf**: A code change that improves performance
+- **test**: Adding missing tests or correcting existing tests
+- **chore**: Changes to the build process or auxiliary tools
+
+#### Examples
+```
+feat(components): add new RecipeCard component with nutritional info
+fix(api): resolve recipe search pagination issue
+docs(readme): update installation instructions
+refactor(utils): extract cache logic into separate module
+```
+
+### Commit Message Structure
+
+#### Title Line
+- Use conventional commit format
+- Keep under 50 characters
+- Use imperative mood ("add" not "added")
+
+#### Body
+- Explain **what** was changed
+- Explain **why** the changes were made
+- Reference the **original prompts** that generated the changes
+- Include any **technical decisions** made
+
+#### Example Complete Commit
+```
+feat(components): add nutritional information display
+
+- Added NutritionalInfo component to show calories, protein, carbs, fat
+- Integrated with RecipeCard component for better user experience
+- Used Tailwind CSS for consistent styling
+- Added TypeScript interfaces for nutrition data
+
+Generated from prompt: "Add nutritional information display to recipe cards"
+Technical decisions: Used flexbox layout for responsive design
+```
+
+### Implementation Steps
+
+1. **After any file modification**:
+   - Stage all changed files: `git add .`
+   - Analyze the changes made
+   - Determine the appropriate commit type
+   - Craft descriptive commit message
+
+2. **Commit with detailed message**:
+   - Use conventional commit format for title
+   - Include body explaining changes and reasoning
+   - Reference original user prompts
+
+3. **Verify commit**:
+   - Check that all intended changes are included
+   - Ensure commit message is clear and descriptive
+
+### Prompt Analysis
+
+When creating commit messages, analyze:
+- **Original user request** - what was asked for
+- **Files modified** - which files were changed
+- **Change type** - feature, fix, refactor, etc.
+- **Technical approach** - how the solution was implemented
+- **User intent** - why the change was requested
+
+### Commit Message Template
+
+```
+<type>(<scope>): <description>
+
+- <list of specific changes made>
+- <technical decisions and approach>
+- <any dependencies or related changes>
+
+Generated from prompt: "<original user request>"
+Technical decisions: <key technical choices made>
+```
+
+## Remember
+
+**Always commit changes automatically after every Cursor modification. Use conventional commit format and explain the reasoning behind changes to maintain clear, meaningful Git history.**
+
+---
+
+*This rule ensures consistent Git practices and maintains a clear audit trail of all AI-generated changes.*

@@ -1,0 +1,418 @@
+# API Design Standards: REST API Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure consistent, secure, and maintainable API design across all server routes.
+
+## API Design Protocol
+
+### REST API Conventions
+```typescript
+// ✅ Good - RESTful API route structure
+// server/api/recipes/index.ts - GET /api/recipes
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event)
+  const { q, cuisine, page = 1, limit = 12 } = query
+
+  try {
+    const recipes = await fetchRecipes({ q, cuisine, page, limit })
+    return {
+      success: true,
+      data: recipes,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: recipes.total
+      }
+    }
+  } catch (error) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to fetch recipes'
+    })
+  }
+})
+
+// server/api/recipes/[id].ts - GET /api/recipes/{id}
+export default defineEventHandler(async (event) => {
+  const id = getRouterParam(event, 'id')
+  
+  if (!id) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Recipe ID is required'
+    })
+  }
+
+  try {
+    const recipe = await fetchRecipeById(id)
+    
+    if (!recipe) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Recipe not found'
+      })
+    }
+
+    return {
+      success: true,
+      data: recipe
+    }
+  } catch (error) {
+    if (error.statusCode) throw error
+    
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to fetch recipe'
+    })
+  }
+})
+```
+
+### HTTP Status Codes
+```typescript
+// ✅ Good - Proper HTTP status code usage
+export default defineEventHandler(async (event) => {
+  const method = getMethod(event)
+  
+  switch (method) {
+    case 'GET':
+      return await handleGet(event)
+    case 'POST':
+      return await handlePost(event)
+    case 'PUT':
+      return await handlePut(event)
+    case 'DELETE':
+      return await handleDelete(event)
+    default:
+      throw createError({
+        statusCode: 405,
+        statusMessage: 'Method not allowed'
+      })
+  }
+})
+
+// Status code guidelines:
+// 200 - Success
+// 201 - Created
+// 400 - Bad Request
+// 401 - Unauthorized
+// 403 - Forbidden
+// 404 - Not Found
+// 422 - Validation Error
+// 429 - Rate Limited
+// 500 - Internal Server Error
+```
+
+### Request Validation
+```typescript
+// ✅ Good - Input validation with Zod
+import { z } from 'zod'
+
+const searchQuerySchema = z.object({
+  q: z.string().min(1).max(100).optional(),
+  cuisine: z.string().optional(),
+  page: z.coerce.number().min(1).max(100).default(1),
+  limit: z.coerce.number().min(1).max(50).default(12)
+})
+
+const createRecipeSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().min(1).max(1000),
+  ingredients: z.array(z.string().min(1)).min(1),
+  instructions: z.array(z.string().min(1)).min(1),
+  cookTime: z.number().min(1).max(480),
+  servings: z.number().min(1).max(20),
+  cuisine: z.string().optional()
+})
+
+export default defineEventHandler(async (event) => {
+  const method = getMethod(event)
+  
+  if (method === 'GET') {
+    const query = getQuery(event)
+    const validatedQuery = searchQuerySchema.parse(query)
+    return await searchRecipes(validatedQuery)
+  }
+  
+  if (method === 'POST') {
+    const body = await readBody(event)
+    const validatedBody = createRecipeSchema.parse(body)
+    return await createRecipe(validatedBody)
+  }
+})
+```
+
+### Error Handling
+```typescript
+// ✅ Good - Centralized error handling
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code?: string
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+class ValidationError extends ApiError {
+  constructor(message: string, public field?: string) {
+    super(message, 422, 'VALIDATION_ERROR')
+    this.name = 'ValidationError'
+  }
+}
+
+class NotFoundError extends ApiError {
+  constructor(resource: string) {
+    super(`${resource} not found`, 404, 'NOT_FOUND')
+    this.name = 'NotFoundError'
+  }
+}
+
+// ✅ Good - Error handler middleware
+export default defineEventHandler(async (event) => {
+  try {
+    return await handleRequest(event)
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw createError({
+        statusCode: error.statusCode,
+        statusMessage: error.message,
+        data: {
+          code: error.code,
+          field: error.field
+        }
+      })
+    }
+    
+    // Log unexpected errors
+    console.error('Unexpected error:', error)
+    
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Internal server error'
+    })
+  }
+})
+```
+
+### Response Format Standards
+```typescript
+// ✅ Good - Consistent response format
+interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: {
+    message: string
+    code?: string
+    field?: string
+  }
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  meta?: {
+    timestamp: string
+    version: string
+  }
+}
+
+// ✅ Good - Success response helper
+function createSuccessResponse<T>(data: T, pagination?: any): ApiResponse<T> {
+  return {
+    success: true,
+    data,
+    pagination,
+    meta: {
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    }
+  }
+}
+
+// ✅ Good - Error response helper
+function createErrorResponse(message: string, code?: string, field?: string): ApiResponse<never> {
+  return {
+    success: false,
+    error: {
+      message,
+      code,
+      field
+    },
+    meta: {
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    }
+  }
+}
+```
+
+### Rate Limiting and Security
+```typescript
+// ✅ Good - Rate limiting middleware
+import rateLimit from 'express-rate-limit'
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    success: false,
+    error: {
+      message: 'Too many requests, please try again later',
+      code: 'RATE_LIMIT_EXCEEDED'
+    }
+  }
+})
+
+// ✅ Good - CORS configuration
+export default defineEventHandler(async (event) => {
+  setResponseHeaders(event, {
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGINS || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400'
+  })
+  
+  if (getMethod(event) === 'OPTIONS') {
+    return { success: true }
+  }
+  
+  return await handleRequest(event)
+})
+```
+
+### API Documentation
+```typescript
+// ✅ Good - OpenAPI/Swagger documentation
+/**
+ * @openapi
+ * /api/recipes:
+ *   get:
+ *     summary: Search recipes
+ *     description: Search for recipes by name, ingredients, or cuisine
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *       - in: query
+ *         name: cuisine
+ *         schema:
+ *           type: string
+ *         description: Filter by cuisine
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 12
+ *         description: Number of results per page
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Recipe'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/Pagination'
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+export default defineEventHandler(async (event) => {
+  // Implementation
+})
+```
+
+### Caching Strategy
+```typescript
+// ✅ Good - API response caching
+import { useCache } from '~/server/utils/cache'
+
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event)
+  const cacheKey = `recipes:${JSON.stringify(query)}`
+  
+  // Check cache first
+  const cached = await useCache().get(cacheKey)
+  if (cached) {
+    setResponseHeaders(event, {
+      'Cache-Control': 'public, max-age=300', // 5 minutes
+      'ETag': cached.etag
+    })
+    return cached.data
+  }
+  
+  // Fetch fresh data
+  const data = await fetchRecipes(query)
+  
+  // Cache the response
+  await useCache().set(cacheKey, data, 300) // 5 minutes TTL
+  
+  setResponseHeaders(event, {
+    'Cache-Control': 'public, max-age=300'
+  })
+  
+  return data
+})
+```
+
+### Logging and Monitoring
+```typescript
+// ✅ Good - Request logging
+export default defineEventHandler(async (event) => {
+  const startTime = Date.now()
+  const method = getMethod(event)
+  const url = getRequestURL(event)
+  
+  try {
+    const result = await handleRequest(event)
+    
+    // Log successful requests
+    console.log(`${method} ${url.pathname} - ${Date.now() - startTime}ms`)
+    
+    return result
+  } catch (error) {
+    // Log errors with context
+    console.error(`${method} ${url.pathname} - Error:`, {
+      message: error.message,
+      statusCode: error.statusCode,
+      duration: Date.now() - startTime,
+      timestamp: new Date().toISOString()
+    })
+    
+    throw error
+  }
+})
+```
+
+## Remember
+
+**Always use consistent response formats, proper HTTP status codes, input validation, and comprehensive error handling. Document your APIs and implement appropriate security measures.**
+
+---
+
+*This rule ensures consistent, secure, and maintainable API design across all server routes.*
+description:
+globs:
+alwaysApply: false
+---

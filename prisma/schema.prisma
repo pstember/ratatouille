@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Recipe {
+  id          Int      @id @default(autoincrement())
+  externalId  Int      @unique // Spoonacular recipe ID
+  title       String
+  image       String?
+  servings    Int?
+  readyInMinutes Int?
+  sourceUrl   String?
+  sourceName  String?
+  summary     String?
+  instructions String?
+  cuisine     String?  // Cuisine type (italian, french, mexican, etc.)
+  isNew       Boolean  @default(true) // Track if recipe is newly fetched
+  enrichedFromSpoonacular Boolean @default(false) // Track if recipe was enriched from Spoonacular
+  enrichmentDate DateTime? // When the recipe was enriched
+  originalSource String? // Original source of the recipe
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ingredients RecipeIngredient[]
+  nutrition   Nutrition?
+  allergens   RecipeAllergen[]
+  cache       Cache[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int
+  name      String
+  amount    Float?
+  unit      String?
+  aisle     String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("recipe_ingredients")
+}
+
+model Nutrition {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int      @unique
+  calories  Float?
+  protein   Float?
+  fat       Float?
+  carbs     Float?
+  fiber     Float?
+  sugar     Float?
+  sodium    Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("nutrition")
+}
+
+model Cache {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   // JSON string of cached data
+  type      String   // 'recipe', 'search', 'nutrition'
+  recipeId  Int?     // Optional reference to recipe
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  recipe    Recipe?  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("cache")
+}
+
+model Search {
+  id        Int      @id @default(autoincrement())
+  query     String
+  results   String   // JSON string of search results
+  count     Int
+  createdAt DateTime @default(now())
+
+  @@map("search")
+}
+
+// Recipe allergens
+model RecipeAllergen {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int
+  allergen  String   // Allergen type (gluten, dairy, nuts, etc.)
+  severity  String   @default("warning") // "warning", "critical"
+  createdAt DateTime @default(now())
+
+  // Relations
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, allergen])
+  @@map("recipe_allergens")
+}
+
+// Enrichment statistics tracking
+model EnrichmentStats {
+  id              Int      @id @default(autoincrement())
+  searchQuery     String
+  recipesEnriched Int
+  enrichmentDate  DateTime @default(now())
+  quotaUsed       Int
+  searchMode      String   // 'database' or 'spoonacular'
+
+  @@map("enrichment_stats")
+}
+
+// Daily API quota usage tracking
+model QuotaUsage {
+  id          Int      @id @default(autoincrement())
+  date        String   @unique // YYYY-MM-DD format
+  pointsUsed  Int      @default(0) // Spoonacular API points used
+  quotaLimit  Int      @default(150) // Daily quota limit
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@map("quota_usage")
+}

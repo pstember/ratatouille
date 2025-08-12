@@ -1,0 +1,97 @@
+---
+description: Guidelines for organizing and managing Cursor IDE AI MDC rules in the project
+globs: ["**/*.mdc", "**/*.md"]
+alwaysApply: false
+---
+
+# MDC Rules Organization: Centralized Rule Management
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure consistent organization and maintainability of all Cursor IDE AI MDC rules.
+
+## Rule Creation Protocol
+
+When creating new MDC rules or modifying existing ones, **ALWAYS** follow these guidelines:
+
+### File Location
+- **Create all new MDC rules** in the `.cursor/rules/` directory
+- **Each rule should be a separate file** with a descriptive filename
+- **Use kebab-case** for filenames (e.g., `component-naming.mdc`, `api-standards.mdc`)
+
+### File Naming Convention
+- Use descriptive, action-oriented names
+- Include the primary purpose in the filename
+- Examples:
+  - `development-workflow.mdc` - Main development process
+  - `component-standards.mdc` - Vue component guidelines
+  - `api-conventions.mdc` - API design rules
+  - `testing-requirements.mdc` - Testing standards
+
+### File Structure Template
+Each MDC rule file should follow this structure:
+
+```markdown
+# [Rule Name]: [Brief Description]
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+[Clear explanation of why this rule is important]
+
+## [Main Section]
+
+[Detailed instructions and guidelines]
+
+## [Additional Sections as Needed]
+
+[More specific rules and examples]
+
+## Remember
+
+[Key takeaway or summary]
+
+---
+
+*[Optional footer note]*
+```
+
+## Rule Management
+
+### Creating New Rules
+1. **Always create in `.cursor/rules/`** - never in other directories
+2. **Use separate files** - don't combine multiple rules in one file
+3. **Follow the template structure** above
+4. **Reference existing rules** for consistency in style and format
+
+### Updating Existing Rules
+1. **Modify the specific rule file** directly
+2. **Maintain the established structure** and formatting
+3. **Update any cross-references** to other rules if needed
+
+### Rule Discovery
+- **Check `.cursor/rules/` first** when looking for existing rules
+- **Use descriptive filenames** to make rules easy to find
+- **Consider creating an index file** if the number of rules grows significantly
+
+## File Organization
+
+```
+.cursor/
+├── rules/
+│   ├── development-workflow.mdc     # Main development process
+│   ├── mdc-rules-organization.mdc   # This file - rule management
+│   ├── component-standards.mdc      # Vue component guidelines
+│   ├── api-conventions.mdc          # API design rules
+│   ├── testing-requirements.mdc     # Testing standards
+│   └── [additional-rules].mdc       # Other specific rules
+specs/
+└── [feature-specs].md               # Feature specifications
+```
+
+## Remember
+
+**Always create new MDC rules in `.cursor/rules/` as separate files with `.mdc` extension. This ensures discoverability, maintainability, and consistent organization across the project.**
+
+---
+
+*This rule ensures that all Cursor IDE AI MDC rules are properly organized and easily accessible for future reference and updates.*

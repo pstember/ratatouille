@@ -1,0 +1,461 @@
+# Database Schema Design: Prisma Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure scalable, maintainable, and performant database design using Prisma ORM.
+
+## Database Design Protocol
+
+### Prisma Schema Conventions
+```prisma
+// ✅ Good - Well-organized Prisma schema
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or "sqlite" for development
+  url      = env("DATABASE_URL")
+}
+
+// ✅ Good - Consistent model naming (PascalCase)
+model Recipe {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(200)
+  description String?  @db.Text
+  image       String?
+  cookTime    Int      @default(0)
+  servings    Int      @default(1)
+  cuisine     String?  @db.VarChar(100)
+  isNew       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // ✅ Good - Explicit field types and constraints
+  ingredients Ingredient[]
+  nutrition   Nutrition?
+  tags        Tag[]
+
+  @@map("recipes") // ✅ Good - Explicit table naming
+  @@index([cuisine]) // ✅ Good - Strategic indexing
+  @@index([isNew, createdAt]) // ✅ Good - Composite indexes
+}
+
+model Ingredient {
+  id       String  @id @default(cuid())
+  name     String  @db.VarChar(200)
+  amount   String? @db.VarChar(50)
+  unit     String? @db.VarChar(50)
+  recipeId String
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("ingredients")
+  @@index([recipeId]) // ✅ Good - Foreign key indexing
+}
+
+model Nutrition {
+  id       String @id @default(cuid())
+  calories Int    @default(0)
+  protein  Float  @default(0)
+  carbs    Float  @default(0)
+  fat      Float  @default(0)
+  fiber    Float? @default(0)
+  sugar    Float? @default(0)
+  recipeId String @unique // ✅ Good - One-to-one relationship
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("nutrition")
+}
+
+model Tag {
+  id      String   @id @default(cuid())
+  name    String   @unique @db.VarChar(100)
+  recipes Recipe[]
+
+  @@map("tags")
+}
+```
+
+### Migration Best Practices
+```sql
+-- ✅ Good - Well-structured migration
+-- prisma/migrations/20250101120000_add_recipe_improvements/migration.sql
+
+-- Add new fields with proper constraints
+ALTER TABLE "recipes" ADD COLUMN "cuisine" VARCHAR(100);
+ALTER TABLE "recipes" ADD COLUMN "is_new" BOOLEAN NOT NULL DEFAULT false;
+
+-- Add indexes for performance
+CREATE INDEX "recipes_cuisine_idx" ON "recipes"("cuisine");
+CREATE INDEX "recipes_is_new_created_at_idx" ON "recipes"("is_new", "created_at");
+
+-- Add foreign key constraints
+ALTER TABLE "ingredients" ADD CONSTRAINT "ingredients_recipe_id_fkey" 
+  FOREIGN KEY ("recipe_id") REFERENCES "recipes"("id") ON DELETE CASCADE;
+
+-- ✅ Good - Rollback migration
+-- prisma/migrations/20250101120000_add_recipe_improvements/rollback.sql
+DROP INDEX IF EXISTS "recipes_is_new_created_at_idx";
+DROP INDEX IF EXISTS "recipes_cuisine_idx";
+ALTER TABLE "recipes" DROP COLUMN IF EXISTS "is_new";
+ALTER TABLE "recipes" DROP COLUMN IF EXISTS "cuisine";
+```
+
+### Database Client Configuration
+```typescript
+// ✅ Good - Database client with connection pooling
+// server/database/client.ts
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  }
+})
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// ✅ Good - Database connection health check
+export async function checkDatabaseConnection() {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    return { status: 'connected' }
+  } catch (error) {
+    console.error('Database connection failed:', error)
+    return { status: 'disconnected', error: error.message }
+  }
+}
+
+// ✅ Good - Graceful shutdown
+process.on('beforeExit', async () => {
+  await prisma.$disconnect()
+})
+```
+
+### Query Optimization
+```typescript
+// ✅ Good - Optimized queries with proper includes
+export async function getRecipesWithDetails(filters: RecipeFilters) {
+  return await prisma.recipe.findMany({
+    where: {
+      AND: [
+        filters.search ? {
+          OR: [
+            { name: { contains: filters.search, mode: 'insensitive' } },
+            { description: { contains: filters.search, mode: 'insensitive' } }
+          ]
+        } : {},
+        filters.cuisine ? { cuisine: filters.cuisine } : {},
+        filters.isNew ? { isNew: true } : {}
+      ]
+    },
+    include: {
+      ingredients: {
+        select: {
+          name: true,
+          amount: true,
+          unit: true
+        }
+      },
+      nutrition: {
+        select: {
+          calories: true,
+          protein: true,
+          carbs: true,
+          fat: true
+        }
+      },
+      tags: {
+        select: {
+          name: true
+        }
+      }
+    },
+    orderBy: [
+      { isNew: 'desc' },
+      { createdAt: 'desc' }
+    ],
+    take: filters.limit || 12,
+    skip: (filters.page - 1) * (filters.limit || 12)
+  })
+}
+
+// ✅ Good - Pagination with count
+export async function getRecipesWithPagination(filters: RecipeFilters) {
+  const [recipes, total] = await Promise.all([
+    prisma.recipe.findMany({
+      where: buildRecipeWhereClause(filters),
+      include: buildRecipeIncludes(),
+      orderBy: buildRecipeOrderBy(filters),
+      take: filters.limit || 12,
+      skip: (filters.page - 1) * (filters.limit || 12)
+    }),
+    prisma.recipe.count({
+      where: buildRecipeWhereClause(filters)
+    })
+  ])
+
+  return {
+    recipes,
+    pagination: {
+      page: filters.page,
+      limit: filters.limit || 12,
+      total,
+      totalPages: Math.ceil(total / (filters.limit || 12))
+    }
+  }
+}
+```
+
+### Data Validation and Constraints
+```typescript
+// ✅ Good - Database-level validation
+export async function createRecipe(data: CreateRecipeInput) {
+  // Validate required fields
+  if (!data.name || data.name.trim().length === 0) {
+    throw new Error('Recipe name is required')
+  }
+
+  if (data.cookTime < 0) {
+    throw new Error('Cook time must be positive')
+  }
+
+  if (data.servings < 1) {
+    throw new Error('Servings must be at least 1')
+  }
+
+  // ✅ Good - Transaction for data consistency
+  return await prisma.$transaction(async (tx) => {
+    const recipe = await tx.recipe.create({
+      data: {
+        name: data.name.trim(),
+        description: data.description?.trim(),
+        image: data.image,
+        cookTime: data.cookTime,
+        servings: data.servings,
+        cuisine: data.cuisine,
+        isNew: true,
+        ingredients: {
+          create: data.ingredients.map(ingredient => ({
+            name: ingredient.name.trim(),
+            amount: ingredient.amount,
+            unit: ingredient.unit
+          }))
+        },
+        nutrition: data.nutrition ? {
+          create: {
+            calories: data.nutrition.calories,
+            protein: data.nutrition.protein,
+            carbs: data.nutrition.carbs,
+            fat: data.nutrition.fat,
+            fiber: data.nutrition.fiber,
+            sugar: data.nutrition.sugar
+          }
+        } : undefined
+      },
+      include: {
+        ingredients: true,
+        nutrition: true
+      }
+    })
+
+    return recipe
+  })
+}
+```
+
+### Indexing Strategy
+```sql
+-- ✅ Good - Strategic indexing for common queries
+-- Index for search functionality
+CREATE INDEX "recipes_name_description_idx" ON "recipes" USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '')));
+
+-- Index for filtering by cuisine
+CREATE INDEX "recipes_cuisine_idx" ON "recipes"("cuisine");
+
+-- Index for new recipes with recent creation
+CREATE INDEX "recipes_is_new_created_at_idx" ON "recipes"("is_new", "created_at" DESC);
+
+-- Index for cook time filtering
+CREATE INDEX "recipes_cook_time_idx" ON "recipes"("cook_time");
+
+-- Index for foreign key relationships
+CREATE INDEX "ingredients_recipe_id_idx" ON "ingredients"("recipe_id");
+
+-- Partial index for active recipes
+CREATE INDEX "recipes_active_idx" ON "recipes"("created_at") WHERE "is_new" = true;
+```
+
+### Database Testing
+```typescript
+// ✅ Good - Database testing utilities
+// tests/setup/database-test-utils.ts
+import { PrismaClient } from '@prisma/client'
+
+export async function setupTestDatabase() {
+  const testPrisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.TEST_DATABASE_URL
+      }
+    }
+  })
+
+  // Clean up test database
+  await testPrisma.recipe.deleteMany()
+  await testPrisma.tag.deleteMany()
+
+  return testPrisma
+}
+
+export async function seedTestData(prisma: PrismaClient) {
+  const recipe = await prisma.recipe.create({
+    data: {
+      name: 'Test Recipe',
+      description: 'Test Description',
+      cookTime: 30,
+      servings: 4,
+      cuisine: 'Test Cuisine',
+      ingredients: {
+        create: [
+          { name: 'Test Ingredient 1', amount: '1', unit: 'cup' },
+          { name: 'Test Ingredient 2', amount: '2', unit: 'tbsp' }
+        ]
+      },
+      nutrition: {
+        create: {
+          calories: 300,
+          protein: 15,
+          carbs: 45,
+          fat: 10
+        }
+      }
+    },
+    include: {
+      ingredients: true,
+      nutrition: true
+    }
+  })
+
+  return recipe
+}
+
+export async function cleanupTestDatabase(prisma: PrismaClient) {
+  await prisma.$disconnect()
+}
+```
+
+### Performance Monitoring
+```typescript
+// ✅ Good - Query performance monitoring
+export async function getRecipesWithPerformanceMonitoring(filters: RecipeFilters) {
+  const startTime = Date.now()
+  
+  try {
+    const result = await getRecipesWithDetails(filters)
+    
+    const duration = Date.now() - startTime
+    if (duration > 1000) { // Log slow queries
+      console.warn(`Slow query detected: ${duration}ms`, {
+        filters,
+        resultCount: result.length
+      })
+    }
+    
+    return result
+  } catch (error) {
+    const duration = Date.now() - startTime
+    console.error(`Query failed after ${duration}ms:`, error)
+    throw error
+  }
+}
+```
+
+### Data Migration and Seeding
+```typescript
+// ✅ Good - Database seeding script
+// prisma/seed.ts
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  // Clear existing data
+  await prisma.recipe.deleteMany()
+  await prisma.tag.deleteMany()
+
+  // Create sample tags
+  const tags = await Promise.all([
+    prisma.tag.create({ data: { name: 'Quick & Easy' } }),
+    prisma.tag.create({ data: { name: 'Vegetarian' } }),
+    prisma.tag.create({ data: { name: 'Gluten-Free' } }),
+    prisma.tag.create({ data: { name: 'Dinner' } })
+  ])
+
+  // Create sample recipes
+  const recipes = await Promise.all([
+    prisma.recipe.create({
+      data: {
+        name: 'Chicken Pasta',
+        description: 'Delicious chicken pasta with creamy sauce',
+        cookTime: 30,
+        servings: 4,
+        cuisine: 'Italian',
+        isNew: true,
+        ingredients: {
+          create: [
+            { name: 'Chicken breast', amount: '2', unit: 'pieces' },
+            { name: 'Pasta', amount: '1', unit: 'pound' },
+            { name: 'Cream', amount: '1', unit: 'cup' }
+          ]
+        },
+        nutrition: {
+          create: {
+            calories: 450,
+            protein: 25,
+            carbs: 45,
+            fat: 15
+          }
+        },
+        tags: {
+          connect: [
+            { name: 'Quick & Easy' },
+            { name: 'Dinner' }
+          ]
+        }
+      }
+    })
+  ])
+
+  console.log(`Seeded ${recipes.length} recipes and ${tags.length} tags`)
+}
+
+main()
+  .catch((e) => {
+    console.error(e)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
+```
+
+## Remember
+
+**Always design schemas with performance in mind, use proper indexing, implement data validation, and maintain consistent naming conventions. Use transactions for data consistency and monitor query performance.**
+
+---
+
+*This rule ensures scalable, maintainable, and performant database design using Prisma ORM.*
+description:
+globs:
+alwaysApply: false
+---

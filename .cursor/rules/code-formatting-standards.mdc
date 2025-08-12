@@ -1,0 +1,548 @@
+# Code Formatting Standards: Consistent Code Style
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure consistent, readable, and maintainable code across the entire codebase.
+
+## Code Formatting Protocol
+
+### Prettier Configuration
+```json
+// ✅ Good - .prettierrc
+{
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "endOfLine": "lf",
+  "vueIndentScriptAndStyle": true,
+  "overrides": [
+    {
+      "files": "*.vue",
+      "options": {
+        "parser": "vue"
+      }
+    },
+    {
+      "files": "*.ts",
+      "options": {
+        "parser": "typescript"
+      }
+    }
+  ]
+}
+```
+
+### ESLint Configuration
+```javascript
+// ✅ Good - .eslintrc.js
+module.exports = {
+  root: true,
+  env: {
+    browser: true,
+    node: true,
+    es2022: true
+  },
+  extends: [
+    '@nuxt/eslint-config',
+    '@vue/eslint-config-typescript',
+    'prettier'
+  ],
+  rules: {
+    // Vue specific rules
+    'vue/multi-word-component-names': 'off',
+    'vue/no-unused-vars': 'error',
+    'vue/component-name-in-template-casing': ['error', 'PascalCase'],
+    'vue/component-definition-name-casing': ['error', 'PascalCase'],
+    'vue/component-options-name-casing': ['error', 'PascalCase'],
+    'vue/custom-event-name-casing': ['error', 'camelCase'],
+    'vue/define-macros-order': ['error', {
+      order: ['defineProps', 'defineEmits']
+    }],
+    'vue/html-comment-content-spacing': ['error', 'always'],
+    'vue/no-unused-properties': ['error', {
+      groups: ['props', 'data', 'computed', 'methods']
+    }],
+    'vue/padding-line-between-blocks': ['error', 'always'],
+    'vue/prefer-separate-static-class': 'error',
+
+    // TypeScript rules
+    '@typescript-eslint/no-unused-vars': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/prefer-const': 'error',
+    '@typescript-eslint/no-var-requires': 'error',
+
+    // General rules
+    'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
+    'no-unused-vars': 'off', // Use TypeScript version
+    'prefer-const': 'error',
+    'no-var': 'error',
+    'object-shorthand': 'error',
+    'prefer-template': 'error',
+    'template-curly-spacing': 'error',
+    'arrow-spacing': 'error',
+    'comma-dangle': ['error', 'always-multiline'],
+    'quotes': ['error', 'single', { avoidEscape: true }],
+    'semi': ['error', 'never'],
+    'indent': ['error', 2],
+    'no-trailing-spaces': 'error',
+    'eol-last': 'error'
+  },
+  overrides: [
+    {
+      files: ['*.vue'],
+      rules: {
+        'indent': 'off' // Let Prettier handle Vue indentation
+      }
+    }
+  ]
+}
+```
+
+### TypeScript Configuration
+```json
+// ✅ Good - tsconfig.json
+{
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "~/*": ["./*"],
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.vue",
+    "**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    ".nuxt",
+    ".output",
+    "dist"
+  ]
+}
+```
+
+### Vue Component Formatting
+```vue
+<!-- ✅ Good - Consistent Vue component structure -->
+<template>
+  <div class="recipe-card">
+    <header class="recipe-header">
+      <h3 class="recipe-title">{{ recipe.name }}</h3>
+      <CuisineBadge :cuisine="recipe.cuisine" />
+    </header>
+    
+    <div class="recipe-content">
+      <img 
+        :src="recipe.image" 
+        :alt="recipe.name"
+        class="recipe-image"
+        loading="lazy"
+      />
+      
+      <p class="recipe-description">{{ recipe.description }}</p>
+    </div>
+    
+    <footer class="recipe-footer">
+      <NutritionalInfo 
+        v-if="showNutrition"
+        :nutrition="recipe.nutrition" 
+      />
+      
+      <button 
+        @click="handleRecipeClick"
+        :disabled="!clickable"
+        class="recipe-button"
+      >
+        View Recipe
+      </button>
+    </footer>
+  </div>
+</template>
+
+<script setup lang="ts">
+// Imports (external libraries first, then internal)
+import { ref, computed, onMounted } from 'vue'
+import type { PropType } from 'vue'
+
+// Types and interfaces
+interface Props {
+  recipe: Recipe
+  showNutrition?: boolean
+  clickable?: boolean
+}
+
+// Props definition
+const props = withDefaults(defineProps<Props>(), {
+  showNutrition: true,
+  clickable: true
+})
+
+// Emits definition
+const emit = defineEmits<{
+  'recipe-click': [recipe: Recipe]
+  'favorite-toggle': [recipeId: string, isFavorite: boolean]
+}>()
+
+// Reactive data
+const searchQuery = ref('')
+const selectedItems = ref<Item[]>([])
+
+// Computed properties
+const filteredItems = computed(() => {
+  return props.recipe.ingredients.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
+
+// Methods
+const handleRecipeClick = () => {
+  emit('recipe-click', props.recipe)
+}
+
+// Lifecycle hooks
+onMounted(() => {
+  console.log('RecipeCard component mounted')
+})
+</script>
+
+<style scoped>
+/* Component styles with BEM methodology */
+.recipe-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.recipe-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.recipe-card__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.recipe-card__content {
+  margin-bottom: 1rem;
+}
+
+.recipe-card__image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.recipe-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+</style>
+```
+
+### TypeScript Code Formatting
+```typescript
+// ✅ Good - Consistent TypeScript formatting
+import { ref, computed, onMounted } from 'vue'
+import type { PropType } from 'vue'
+
+// Type definitions
+interface Recipe {
+  id: string
+  name: string
+  description: string
+  image?: string
+  cookTime: number
+  servings: number
+  cuisine?: string
+  ingredients: Ingredient[]
+  nutrition?: Nutrition
+}
+
+interface Ingredient {
+  id: string
+  name: string
+  amount?: string
+  unit?: string
+}
+
+interface Nutrition {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  fiber?: number
+  sugar?: number
+}
+
+// Function with proper typing
+export function formatCookingTime(minutes: number): string {
+  if (minutes <= 0) {
+    return '0 min'
+  }
+
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+
+  if (hours === 0) {
+    return `${remainingMinutes} min`
+  }
+
+  if (remainingMinutes === 0) {
+    return `${hours} hr`
+  }
+
+  return `${hours} hr ${remainingMinutes} min`
+}
+
+// Async function with error handling
+export async function fetchRecipes(
+  filters: RecipeFilters
+): Promise<Recipe[]> {
+  try {
+    const response = await $fetch('/api/recipes', {
+      query: filters
+    })
+
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch recipes:', error)
+    throw new Error('Failed to fetch recipes')
+  }
+}
+
+// Composable with proper typing
+export function useRecipe() {
+  const recipes = ref<Recipe[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  const fetchRecipes = async (filters: RecipeFilters) => {
+    loading.value = true
+    error.value = null
+
+    try {
+      recipes.value = await fetchRecipes(filters)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Unknown error'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const hasRecipes = computed(() => recipes.value.length > 0)
+
+  return {
+    recipes: readonly(recipes),
+    loading: readonly(loading),
+    error: readonly(error),
+    hasRecipes,
+    fetchRecipes
+  }
+}
+```
+
+### Naming Conventions
+```typescript
+// ✅ Good - Consistent naming conventions
+
+// Files and directories: kebab-case
+// components/recipe-card.vue
+// stores/recipe-store.ts
+// utils/format-cooking-time.ts
+
+// Components: PascalCase
+// RecipeCard.vue
+// NutritionalInfo.vue
+// SearchBar.vue
+
+// Variables and functions: camelCase
+const recipeName = 'Chicken Pasta'
+const cookingTime = 30
+const isFavorite = true
+
+function formatRecipeName(name: string): string {
+  return name.trim().toLowerCase()
+}
+
+// Constants: UPPER_SNAKE_CASE
+const API_BASE_URL = 'https://api.example.com'
+const MAX_RECIPES_PER_PAGE = 12
+const DEFAULT_COOKING_TIME = 30
+
+// Types and interfaces: PascalCase
+interface RecipeData {
+  id: string
+  name: string
+  description: string
+}
+
+type RecipeStatus = 'loading' | 'success' | 'error'
+
+// Enums: PascalCase
+enum CuisineType {
+  Italian = 'italian',
+  Mexican = 'mexican',
+  Asian = 'asian'
+}
+
+// CSS classes: kebab-case with BEM methodology
+// .recipe-card
+// .recipe-card__title
+// .recipe-card--featured
+```
+
+### Import Organization
+```typescript
+// ✅ Good - Organized imports
+
+// 1. External libraries (alphabetical)
+import { computed, ref, watch } from 'vue'
+import type { PropType } from 'vue'
+import { defineStore } from 'pinia'
+
+// 2. Internal modules (alphabetical)
+import { formatCookingTime } from '~/utils/format-cooking-time'
+import type { Recipe, RecipeFilters } from '~/types/recipe'
+import { useRecipeStore } from '~/stores/recipe'
+
+// 3. Relative imports (alphabetical)
+import RecipeCard from './RecipeCard.vue'
+import SearchBar from './SearchBar.vue'
+
+// 4. Type-only imports (grouped separately)
+import type { ComponentProps } from './types'
+```
+
+### Comment Standards
+```typescript
+// ✅ Good - Consistent commenting
+
+/**
+ * Formats cooking time in minutes to a human-readable string
+ * @param minutes - The cooking time in minutes
+ * @returns Formatted string (e.g., "30 min", "1 hr", "1 hr 30 min")
+ * @example
+ * formatCookingTime(30) // "30 min"
+ * formatCookingTime(90) // "1 hr 30 min"
+ */
+export function formatCookingTime(minutes: number): string {
+  // Handle edge case: zero or negative minutes
+  if (minutes <= 0) {
+    return '0 min'
+  }
+
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+
+  // Return appropriate format based on time components
+  if (hours === 0) {
+    return `${remainingMinutes} min`
+  }
+
+  if (remainingMinutes === 0) {
+    return `${hours} hr`
+  }
+
+  return `${hours} hr ${remainingMinutes} min`
+}
+
+// ✅ Good - Inline comments for complex logic
+const filteredRecipes = computed(() => {
+  return recipes.value.filter(recipe => {
+    // Check if recipe matches search query
+    const matchesSearch = !searchQuery.value || 
+      recipe.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+
+    // Check if recipe matches cuisine filter
+    const matchesCuisine = !selectedCuisine.value || 
+      recipe.cuisine === selectedCuisine.value
+
+    // Check if recipe is within time limit
+    const matchesTime = !maxCookingTime.value || 
+      recipe.cookTime <= maxCookingTime.value
+
+    return matchesSearch && matchesCuisine && matchesTime
+  })
+})
+```
+
+### Package.json Scripts
+```json
+// ✅ Good - Organized package.json scripts
+{
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    
+    "test": "vitest",
+    "test:unit": "vitest unit",
+    "test:integration": "vitest integration",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest --watch",
+    
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    
+    "prepare": "husky install"
+  }
+}
+```
+
+## Remember
+
+**Always use consistent formatting, follow naming conventions, organize imports properly, and maintain clean, readable code. Use automated tools like Prettier and ESLint to enforce standards.**
+
+---
+
+*This rule ensures consistent, readable, and maintainable code across the entire codebase.*
+description:
+globs:
+alwaysApply: false
+---

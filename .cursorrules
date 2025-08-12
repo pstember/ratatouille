@@ -1,0 +1,52 @@
+# Cursor Rules for Ratatouille Project
+
+## Development Workflow Enforcement
+
+**CRITICAL**: Always follow the development workflow defined in `.cursor/rules/development-workflow.mdc` when implementing new features or making significant changes.
+
+## Required Process
+
+1. **ALWAYS start by asking**: "Should I create a Spec for this task first?"
+2. **NEVER begin coding** until a Spec is created and approved
+3. **Wait for user approval** (user must type "GO!" or explicitly approve)
+4. **Reference the Spec** throughout implementation
+5. **Include unit tests** for all new code
+
+## Workflow Steps
+
+- **Phase 1**: Requirements gathering and Spec creation
+- **Phase 2**: Review and refine Spec with user
+- **Phase 3**: Implementation only after explicit approval
+
+## File Organization
+
+- Create Specs in `specs/FeatureName.md`
+- Use `specs/experimental/` for experimental Specs
+- Reference existing Specs for consistency
+
+## Core Rules to Follow
+
+### Always Apply
+- **Development Workflow**: `.cursor/rules/development-workflow.mdc`
+- **Security Practices**: `.cursor/rules/security-best-practices.mdc`
+- **Code Formatting**: `.cursor/rules/code-formatting-standards.mdc`
+
+### Context-Specific
+- **Vue Components**: `.cursor/rules/VUE-component-structure.mdc`
+- **State Management**: `.cursor/rules/VUE-state-management.mdc`
+- **API Development**: `.cursor/rules/api-design-standards.mdc`
+- **Database Work**: `.cursor/rules/database-schema-design.mdc`
+- **Testing**: `.cursor/rules/testing-standards.mdc`
+
+### Code Quality
+- **TypeScript Safety**: `.cursor/rules/TS-type-safety.mdc`
+- **Error Handling**: `.cursor/rules/TS-error-handling.mdc`
+- **JavaScript Modern Syntax**: `.cursor/rules/JS-modern-syntax.mdc`
+- **Performance**: `.cursor/rules/JS-performance.mdc`
+- **Vue 3 Imports & Refs**: `.cursor/rules/vue-imports-and-refs.mdc`
+
+## Remember
+
+**Think first, ask clarifying questions, then code. The Spec is your north star. Always follow security best practices and maintain consistent code formatting.**
+
+This workflow ensures high-quality, well-thought-out features by requiring proper planning before implementation.

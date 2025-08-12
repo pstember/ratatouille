@@ -1,0 +1,671 @@
+# Testing Standards: Comprehensive Testing Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure high-quality, maintainable, and reliable tests across all testing layers.
+
+## Critical Testing Learnings
+
+### Vue 3 Import Requirements
+
+**CRITICAL**: Always import Vue 3 composables explicitly in `<script setup>` blocks. This is the most common cause of test failures.
+
+```typescript
+// ✅ CORRECT - Always import what you use
+import { ref, computed, reactive, watch, onMounted } from 'vue'
+
+// ❌ WRONG - Don't rely on auto-imports in script setup
+// Missing imports will cause "ref is not defined" errors
+```
+
+**Common Import Patterns:**
+```typescript
+// For reactive state
+import { ref, reactive } from 'vue'
+
+// For computed properties
+import { computed } from 'vue'
+
+// For lifecycle hooks
+import { onMounted, onUnmounted, onUpdated } from 'vue'
+
+// For watchers
+import { watch, watchEffect } from 'vue'
+
+// For Pinia stores
+import { defineStore } from 'pinia'
+
+// For Vue composables
+import { useRouter, useRoute } from 'vue-router'
+```
+
+### Test Setup Best Practices
+
+#### 1. Proper Mock Setup
+```typescript
+// tests/setup/test-utils.ts
+import { config } from '@vue/test-utils'
+import { vi } from 'vitest'
+
+// Mock definePageMeta globally before any imports
+vi.mock('nuxt/app', () => ({
+  definePageMeta: vi.fn()
+}))
+
+vi.mock('#app', () => ({
+  definePageMeta: vi.fn()
+}))
+
+vi.mock('#imports', () => ({
+  ref: vi.fn((value) => ({ value })),
+  computed: vi.fn((fn) => ({ value: fn() })),
+  onMounted: vi.fn((fn) => fn()),
+  definePageMeta: vi.fn()
+}))
+
+// Mock global definePageMeta
+global.definePageMeta = vi.fn()
+
+// Mock Nuxt components
+vi.mock('#components', () => ({
+  RecipeSkeleton: { template: '<div class="recipe-skeleton">Loading...</div>' },
+  RecipeCard: { template: '<div class="recipe-card">Recipe Card</div>' }
+}))
+```
+
+#### 2. Async Test Functions
+Always use `async/await` for test functions that involve component updates or API calls:
+
+```typescript
+// ✅ CORRECT
+it('should update component state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+
+// ❌ WRONG
+it('should update component state', () => {
+  wrapper.vm.isLoading = true
+  wrapper.vm.$nextTick() // Missing await
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+```
+
+#### 3. Element Selection Best Practices
+```typescript
+// ✅ CORRECT - Use findAll and find for element selection
+const buttons = wrapper.findAll('button')
+const button = buttons.find(button => button.text().includes('Discover More'))
+if (button) {
+  await button.trigger('click')
+}
+
+// ❌ WRONG - Don't use filter on single elements
+const button = wrapper.find('button').filter(button => button.text().includes('Discover More'))
+```
+
+#### 4. Mock Clearing
+Always clear mocks between tests to prevent interference:
+
+```typescript
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockFetch.mockClear()
+})
+```
+
+## Testing Protocol
+
+### Test Structure and Organization
+```typescript
+// ✅ Good - Well-structured test file
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import ComponentName from '~/components/ComponentName.vue'
+import { setupTestEnvironment, cleanupTestEnvironment } from '~/tests/setup/test-utils'
+
+describe('ComponentName', () => {
+  let pinia: any
+
+  beforeEach(() => {
+    pinia = setupTestEnvironment()
+  })
+
+  afterEach(() => {
+    cleanupTestEnvironment()
+    vi.clearAllMocks()
+  })
+
+  describe('Rendering', () => {
+    it('renders correctly with required props', () => {
+      const wrapper = mount(ComponentName, {
+        props: { requiredProp: 'value' },
+        global: { plugins: [pinia] }
+      })
+
+      expect(wrapper.exists()).toBe(true)
+      expect(wrapper.text()).toContain('expected text')
+    })
+  })
+
+  describe('User Interactions', () => {
+    it('emits event when button is clicked', async () => {
+      const wrapper = mount(ComponentName, {
+        props: { requiredProp: 'value' },
+        global: { plugins: [pinia] }
+      })
+
+      await wrapper.find('button').trigger('click')
+      
+      expect(wrapper.emitted('click')).toBeTruthy()
+      expect(wrapper.emitted('click')).toHaveLength(1)
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles empty data gracefully', () => {
+      const wrapper = mount(ComponentName, {
+        props: { items: [] },
+        global: { plugins: [pinia] }
+      })
+
+      expect(wrapper.find('.empty-state').exists()).toBe(true)
+    })
+  })
+})
+```
+
+### Unit Testing Standards
+
+#### Component Testing
+```typescript
+// ✅ Good - Component testing with Vue Test Utils
+describe('RecipeCard Component', () => {
+  it('displays recipe information correctly', () => {
+    const recipe = {
+      id: '1',
+      name: 'Chicken Pasta',
+      description: 'Delicious pasta dish',
+      image: '/chicken-pasta.jpg'
+    }
+
+    const wrapper = mount(RecipeCard, {
+      props: { recipe },
+      global: { plugins: [pinia] }
+    })
+
+    expect(wrapper.find('.recipe-title').text()).toBe('Chicken Pasta')
+    expect(wrapper.find('.recipe-description').text()).toBe('Delicious pasta dish')
+    expect(wrapper.find('img').attributes('src')).toBe('/chicken-pasta.jpg')
+  })
+
+  it('emits click event when recipe is clicked', async () => {
+    const wrapper = mount(RecipeCard, {
+      props: { recipe: mockRecipe },
+      global: { plugins: [pinia] }
+    })
+
+    await wrapper.find('.recipe-card').trigger('click')
+    
+    expect(wrapper.emitted('recipe-click')).toBeTruthy()
+    expect(wrapper.emitted('recipe-click')[0]).toEqual([mockRecipe])
+  })
+})
+```
+
+#### Store Testing
+```typescript
+// ✅ Good - Pinia store testing
+describe('Recipes Store', () => {
+  let store: any
+
+  beforeEach(() => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    store = useRecipesStore()
+  })
+
+  it('initializes with correct default state', () => {
+    expect(store.recipes).toEqual([])
+    expect(store.loading).toBe(false)
+    expect(store.error).toBe(null)
+  })
+
+  it('fetches recipes successfully', async () => {
+    const mockRecipes = [{ id: '1', name: 'Recipe 1' }]
+    mockFetch.mockResolvedValueOnce({ results: mockRecipes })
+
+    await store.fetchRecipes()
+
+    expect(store.recipes).toEqual(mockRecipes)
+    expect(store.loading).toBe(false)
+    expect(store.error).toBe(null)
+  })
+
+  it('handles fetch errors gracefully', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('API Error'))
+
+    await store.fetchRecipes()
+
+    expect(store.error).toBe('API Error')
+    expect(store.loading).toBe(false)
+  })
+})
+```
+
+#### Utility Function Testing
+```typescript
+// ✅ Good - Pure function testing
+describe('Recipe Utils', () => {
+  describe('formatCookingTime', () => {
+    it('formats minutes correctly', () => {
+      expect(formatCookingTime(30)).toBe('30 min')
+      expect(formatCookingTime(60)).toBe('1 hr')
+      expect(formatCookingTime(90)).toBe('1 hr 30 min')
+    })
+
+    it('handles edge cases', () => {
+      expect(formatCookingTime(0)).toBe('0 min')
+      expect(formatCookingTime(-5)).toBe('0 min')
+    })
+  })
+
+  describe('validateRecipe', () => {
+    it('validates correct recipe data', () => {
+      const validRecipe = {
+        name: 'Test Recipe',
+        ingredients: ['ingredient 1'],
+        instructions: ['step 1']
+      }
+
+      const result = validateRecipe(validRecipe)
+      expect(result.isValid).toBe(true)
+      expect(result.errors).toEqual([])
+    })
+
+    it('returns errors for invalid data', () => {
+      const invalidRecipe = {
+        name: '',
+        ingredients: [],
+        instructions: []
+      }
+
+      const result = validateRecipe(invalidRecipe)
+      expect(result.isValid).toBe(false)
+      expect(result.errors).toContain('Recipe name is required')
+    })
+  })
+})
+```
+
+### Common Test Patterns
+
+#### Component State Testing
+```typescript
+it('should show loading state initially', async () => {
+  // Set component state
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  
+  // Test the result
+  expect(wrapper.find('.recipe-skeleton').exists()).toBe(true)
+})
+```
+
+#### Button Click Testing
+```typescript
+it('should trigger action when button is clicked', async () => {
+  // Clear mocks to reset call count
+  mockFetch.mockClear()
+  
+  // Ensure component is in correct state
+  wrapper.vm.isLoading = false
+  await wrapper.vm.$nextTick()
+  
+  // Find and click button
+  const button = wrapper.find('button')
+  expect(button.exists()).toBe(true)
+  expect(button.attributes('disabled')).toBeUndefined()
+  
+  await button.trigger('click')
+  await wrapper.vm.$nextTick()
+  
+  // Verify the expected behavior
+  expect(mockFetch).toHaveBeenCalled()
+})
+```
+
+#### Error Handling Testing
+```typescript
+it('should handle API errors gracefully', async () => {
+  const error = { data: { message: 'API Error' } }
+  mockFetch.mockRejectedValue(error)
+  
+  await wrapper.vm.fetchData()
+  await wrapper.vm.$nextTick()
+  
+  expect(wrapper.text()).toContain('Something went wrong')
+  expect(wrapper.text()).toContain('API Error')
+})
+```
+
+### Integration Testing Standards
+
+#### API Integration Testing
+```typescript
+// ✅ Good - API endpoint testing
+describe('API Integration', () => {
+  it('GET /api/recipes returns recipes', async () => {
+    const event = createEvent({
+      method: 'GET',
+      url: '/api/recipes?q=chicken'
+    })
+
+    const response = await recipesHandler(event)
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(Array.isArray(data.results)).toBe(true)
+    expect(data.results.length).toBeGreaterThan(0)
+  })
+
+  it('handles API errors gracefully', async () => {
+    // Mock external API failure
+    mockFetch.mockRejectedValueOnce(new Error('External API Error'))
+
+    const event = createEvent({
+      method: 'GET',
+      url: '/api/recipes?q=chicken'
+    })
+
+    const response = await recipesHandler(event)
+    const data = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(data.error).toBe('Failed to fetch recipes')
+  })
+})
+```
+
+#### Database Integration Testing
+```typescript
+// ✅ Good - Database operation testing
+describe('Database Integration', () => {
+  beforeEach(async () => {
+    await setupTestDatabase()
+  })
+
+  afterEach(async () => {
+    await cleanupTestDatabase()
+  })
+
+  it('creates and retrieves recipe', async () => {
+    const recipeData = {
+      name: 'Test Recipe',
+      description: 'Test Description',
+      ingredients: ['ingredient 1'],
+      instructions: ['step 1']
+    }
+
+    const createdRecipe = await prisma.recipe.create({
+      data: recipeData
+    })
+
+    expect(createdRecipe.id).toBeDefined()
+    expect(createdRecipe.name).toBe(recipeData.name)
+
+    const retrievedRecipe = await prisma.recipe.findUnique({
+      where: { id: createdRecipe.id }
+    })
+
+    expect(retrievedRecipe).toEqual(createdRecipe)
+  })
+})
+```
+
+### E2E Testing Standards
+
+#### User Flow Testing
+```typescript
+// ✅ Good - E2E user flow testing
+describe('Recipe Search Flow', () => {
+  it('allows user to search and view recipe details', async ({ page }) => {
+    // Navigate to home page
+    await page.goto('/')
+    
+    // Search for recipes
+    await page.fill('[data-testid="search-input"]', 'chicken')
+    await page.click('[data-testid="search-button"]')
+    
+    // Wait for results
+    await page.waitForSelector('[data-testid="recipe-card"]')
+    
+    // Verify results are displayed
+    const recipeCards = await page.locator('[data-testid="recipe-card"]').count()
+    expect(recipeCards).toBeGreaterThan(0)
+    
+    // Click on first recipe
+    await page.click('[data-testid="recipe-card"]:first-child')
+    
+    // Verify navigation to detail page
+    await page.waitForURL(/\/recipe\/\d+/)
+    await page.waitForSelector('[data-testid="recipe-detail"]')
+    
+    // Verify recipe details are displayed
+    const recipeTitle = await page.locator('[data-testid="recipe-title"]').textContent()
+    expect(recipeTitle).toBeTruthy()
+  })
+})
+```
+
+### Test Data Management
+
+#### Mock Data and Fixtures
+```typescript
+// ✅ Good - Centralized test data
+// tests/fixtures/recipes.json
+export const mockRecipes = [
+  {
+    id: '1',
+    name: 'Chicken Pasta',
+    description: 'Delicious pasta dish',
+    ingredients: ['chicken', 'pasta', 'sauce'],
+    instructions: ['Cook chicken', 'Boil pasta', 'Combine'],
+    cookTime: 30,
+    servings: 4,
+    cuisine: 'Italian',
+    nutrition: {
+      calories: 450,
+      protein: 25,
+      carbs: 45,
+      fat: 15
+    }
+  }
+]
+
+// ✅ Good - Test utilities
+export const setupTestEnvironment = () => {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  
+  // Mock global $fetch
+  global.$fetch = vi.fn()
+  
+  return pinia
+}
+
+export const cleanupTestEnvironment = () => {
+  vi.clearAllMocks()
+  vi.restoreAllMocks()
+}
+```
+
+### Test Coverage Requirements
+
+#### Coverage Thresholds
+```typescript
+// ✅ Good - Coverage configuration in vitest.config.ts
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'tests/',
+        'coverage/',
+        '.nuxt/',
+        '.output/',
+        'dist/',
+        '**/*.d.ts',
+        '**/*.config.*'
+      ],
+      thresholds: {
+        global: {
+          branches: 80,
+          functions: 80,
+          lines: 85,
+          statements: 85
+        }
+      }
+    }
+  }
+})
+```
+
+### Testing Best Practices
+
+#### Test Naming and Organization
+```typescript
+// ✅ Good - Descriptive test names
+describe('RecipeCard Component', () => {
+  describe('when recipe has all data', () => {
+    it('displays complete recipe information', () => {
+      // Test implementation
+    })
+  })
+
+  describe('when recipe is missing image', () => {
+    it('shows placeholder image', () => {
+      // Test implementation
+    })
+  })
+
+  describe('when user clicks recipe card', () => {
+    it('navigates to recipe detail page', async () => {
+      // Test implementation
+    })
+  })
+})
+```
+
+#### Async Testing
+```typescript
+// ✅ Good - Proper async test handling
+it('loads recipes on mount', async () => {
+  const wrapper = mount(Component, {
+    global: { plugins: [pinia] }
+  })
+
+  // Wait for async operations
+  await wrapper.vm.$nextTick()
+  await flushPromises()
+
+  expect(wrapper.find('.loading').exists()).toBe(false)
+  expect(wrapper.find('.recipe-list').exists()).toBe(true)
+})
+```
+
+#### Mock Management
+```typescript
+// ✅ Good - Proper mock setup and cleanup
+describe('API Integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockFetch.mockReset()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('calls API with correct parameters', async () => {
+    mockFetch.mockResolvedValueOnce({ results: [] })
+
+    await fetchRecipes('chicken')
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/recipes'),
+      expect.objectContaining({
+        query: { q: 'chicken' }
+      })
+    )
+  })
+})
+```
+
+## Troubleshooting Common Test Issues
+
+### 1. "ref is not defined" Errors
+**Problem**: Vue 3 composables not imported in script setup blocks
+**Solution**: Always import Vue composables explicitly:
+```typescript
+import { ref, computed, onMounted } from 'vue'
+```
+
+### 2. Test Selector Issues
+**Problem**: Malformed selectors or missing elements
+**Solution**: Use proper element selection patterns:
+```typescript
+// ✅ Correct
+const buttons = wrapper.findAll('button')
+const button = buttons.find(button => button.text().includes('Discover More'))
+
+// ❌ Wrong
+const button = wrapper.find('button').filter(button => button.text().includes('Discover More'))
+```
+
+### 3. Async Test Failures
+**Problem**: Missing async/await in test functions
+**Solution**: Always use async for tests with component updates:
+```typescript
+// ✅ Correct
+it('should update state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+```
+
+### 4. Mock Interference
+**Problem**: Mocks not cleared between tests
+**Solution**: Clear mocks in beforeEach:
+```typescript
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockFetch.mockClear()
+})
+```
+
+### 5. Component State Testing
+**Problem**: Testing component state without proper setup
+**Solution**: Set component state and wait for updates:
+```typescript
+it('should show loading state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.recipe-skeleton').exists()).toBe(true)
+})
+```
+
+## Remember
+
+**Always write tests for new features, maintain high coverage, use descriptive test names, and organize tests logically. Test both happy paths and edge cases to ensure robust functionality.**
+
+**CRITICAL**: Always import Vue 3 composables explicitly in script setup blocks to prevent "ref is not defined" errors.
+
+---
+
+*This rule ensures high-quality, maintainable, and reliable tests across all testing layers.*

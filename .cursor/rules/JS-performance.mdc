@@ -1,0 +1,183 @@
+---
+description: JavaScript performance optimization, memory management, and efficient DOM operations
+globs: ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# JS-Performance: Optimization Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure optimal performance and efficient resource usage in JavaScript applications.
+
+## Performance Protocol
+
+### Memory Management
+```javascript
+// ✅ Good - Avoid memory leaks
+function createEventListener() {
+  const element = document.getElementById('button');
+  
+  const handler = () => {
+    console.log('Button clicked');
+  };
+  
+  element.addEventListener('click', handler);
+  
+  // Return cleanup function
+  return () => {
+    element.removeEventListener('click', handler);
+  };
+}
+
+// ✅ Good - WeakMap for object references
+const cache = new WeakMap();
+function expensiveOperation(obj) {
+  if (cache.has(obj)) {
+    return cache.get(obj);
+  }
+  
+  const result = computeExpensiveResult(obj);
+  cache.set(obj, result);
+  return result;
+}
+```
+
+### Efficient Loops
+```javascript
+// ✅ Good - Use appropriate loop methods
+const numbers = [1, 2, 3, 4, 5];
+
+// For simple iteration
+for (const num of numbers) {
+  console.log(num);
+}
+
+// For index-based operations
+for (let i = 0; i < numbers.length; i++) {
+  if (numbers[i] > 3) break; // Early exit
+}
+
+// For functional operations
+const doubled = numbers.map(n => n * 2);
+const evens = numbers.filter(n => n % 2 === 0);
+```
+
+### Debouncing and Throttling
+```javascript
+// ✅ Good - Debounce function
+function debounce(func, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+// ✅ Good - Throttle function
+function throttle(func, limit) {
+  let inThrottle;
+  return function (...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+// Usage
+const debouncedSearch = debounce(searchAPI, 300);
+const throttledScroll = throttle(handleScroll, 100);
+```
+
+### Lazy Loading
+```javascript
+// ✅ Good - Lazy loading with Intersection Observer
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      img.src = img.dataset.src;
+      observer.unobserve(img);
+    }
+  });
+});
+
+document.querySelectorAll('img[data-src]').forEach(img => {
+  observer.observe(img);
+});
+
+// ✅ Good - Dynamic imports for code splitting
+const loadModule = async () => {
+  const module = await import('./heavy-module');
+  return module.default;
+};
+```
+
+### Efficient DOM Operations
+```javascript
+// ✅ Good - Batch DOM updates
+function updateList(items) {
+  const fragment = document.createDocumentFragment();
+  
+  items.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item.name;
+    fragment.appendChild(li);
+  });
+  
+  document.getElementById('list').appendChild(fragment);
+}
+
+// ✅ Good - Use requestAnimationFrame for animations
+function animate(element) {
+  let start = null;
+  
+  function step(timestamp) {
+    if (!start) start = timestamp;
+    const progress = timestamp - start;
+    
+    element.style.transform = `translateX(${Math.min(progress / 10, 100)}px)`;
+    
+    if (progress < 1000) {
+      requestAnimationFrame(step);
+    }
+  }
+  
+  requestAnimationFrame(step);
+}
+```
+
+### Caching Strategies
+```javascript
+// ✅ Good - Simple cache implementation
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cachedFetch(url) {
+  const cached = cache.get(url);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return Promise.resolve(cached.data);
+  }
+  
+  return fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      cache.set(url, {
+        data,
+        timestamp: Date.now()
+      });
+      return data;
+    });
+}
+```
+
+## Remember
+
+**Always optimize for performance by managing memory, using efficient algorithms, implementing caching, and minimizing DOM operations.**
+
+---
+
+*This rule ensures optimal performance and efficient resource usage in JavaScript applications.*

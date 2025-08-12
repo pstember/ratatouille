@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "title": "Classic Margherita Pizza",
+    "image": "margherita-pizza.jpg",
+    "readyInMinutes": 45,
+    "servings": 4,
+    "summary": "A traditional Italian pizza with fresh mozzarella, basil, and tomato sauce",
+    "instructions": "1. Prepare the dough\n2. Add tomato sauce\n3. Add mozzarella\n4. Bake at 450°F for 15 minutes",
+    "ingredients": ["pizza dough", "tomato sauce", "mozzarella", "basil", "olive oil"],
+    "nutrition": {
+      "calories": 285,
+      "protein": 12,
+      "carbs": 35,
+      "fat": 14
+    }
+  },
+  {
+    "id": 2,
+    "title": "Grilled Chicken Salad",
+    "image": "chicken-salad.jpg",
+    "readyInMinutes": 25,
+    "servings": 2,
+    "summary": "Healthy grilled chicken salad with mixed greens and vinaigrette",
+    "instructions": "1. Grill chicken breast\n2. Mix salad greens\n3. Add grilled chicken\n4. Dress with vinaigrette",
+    "ingredients": ["chicken breast", "mixed greens", "cherry tomatoes", "cucumber", "balsamic vinaigrette"],
+    "nutrition": {
+      "calories": 320,
+      "protein": 35,
+      "carbs": 8,
+      "fat": 18
+    }
+  },
+  {
+    "id": 3,
+    "title": "Chocolate Chip Cookies",
+    "image": "chocolate-cookies.jpg",
+    "readyInMinutes": 35,
+    "servings": 24,
+    "summary": "Classic homemade chocolate chip cookies with crispy edges and chewy centers",
+    "instructions": "1. Mix dry ingredients\n2. Cream butter and sugar\n3. Add eggs and vanilla\n4. Bake at 375°F for 10-12 minutes",
+    "ingredients": ["flour", "butter", "sugar", "eggs", "chocolate chips", "vanilla extract"],
+    "nutrition": {
+      "calories": 150,
+      "protein": 2,
+      "carbs": 20,
+      "fat": 8
+    }
+  }
+]

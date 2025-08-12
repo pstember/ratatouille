@@ -1,0 +1,128 @@
+---
+description: TypeScript error handling patterns, custom error classes, and Result type implementation
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# TS-Error Handling: Robust Error Management
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure proper error handling and recovery mechanisms in TypeScript applications.
+
+## Error Handling Protocol
+
+### Custom Error Classes
+```typescript
+// ✅ Good - Custom error with type information
+class ValidationError extends Error {
+  constructor(
+    message: string,
+    public field: string,
+    public value: unknown
+  ) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public endpoint: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+```
+
+### Result Pattern
+```typescript
+// ✅ Good - Result type for error handling
+type Result<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E };
+
+function divide(a: number, b: number): Result<number, ValidationError> {
+  if (b === 0) {
+    return {
+      success: false,
+      error: new ValidationError('Division by zero', 'divisor', b)
+    };
+  }
+  return { success: true, data: a / b };
+}
+```
+
+### Async Error Handling
+```typescript
+// ✅ Good - Async function with proper error handling
+async function fetchUserData(id: string): Promise<Result<User, ApiError>> {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+    
+    if (!response.ok) {
+      throw new ApiError(
+        `Failed to fetch user: ${response.statusText}`,
+        response.status,
+        `/api/users/${id}`
+      );
+    }
+    
+    const user = await response.json();
+    return { success: true, data: user };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return { success: false, error };
+    }
+    return {
+      success: false,
+      error: new ApiError('Unknown error occurred', 500, `/api/users/${id}`)
+    };
+  }
+}
+```
+
+### Type Guards for Error Handling
+```typescript
+// ✅ Good - Type guards for error checking
+function isValidationError(error: unknown): error is ValidationError {
+  return error instanceof ValidationError;
+}
+
+function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
+}
+
+// Usage
+function handleError(error: unknown): void {
+  if (isValidationError(error)) {
+    console.error(`Validation failed for ${error.field}:`, error.value);
+  } else if (isApiError(error)) {
+    console.error(`API error ${error.statusCode} at ${error.endpoint}`);
+  } else {
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+### Optional Chaining with Error Handling
+```typescript
+// ✅ Good - Safe property access with error handling
+function getUserDisplayName(user: User | null): string {
+  try {
+    return user?.profile?.displayName ?? user?.name ?? 'Unknown User';
+  } catch (error) {
+    console.error('Error getting user display name:', error);
+    return 'Unknown User';
+  }
+}
+```
+
+## Remember
+
+**Always use typed error handling, custom error classes, and the Result pattern to ensure robust error management in TypeScript applications.**
+
+*This rule ensures proper error handling and recovery mechanisms in TypeScript applications.*

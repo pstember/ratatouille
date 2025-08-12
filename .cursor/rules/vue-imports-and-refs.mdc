@@ -1,0 +1,259 @@
+---
+description: Vue 3 imports and refs best practices to prevent common TypeScript errors
+globs: ["**/*.vue", "**/*.ts", "**/stores/*.ts", "**/tests/**/*.test.ts"]
+alwaysApply: false
+---
+
+# Vue 3 Imports and Refs Best Practices
+
+## Critical Import Requirements
+
+### Always Import Vue Composables
+**NEVER** use Vue 3 composables without explicit imports in `<script setup>` blocks:
+
+```typescript
+// ✅ CORRECT - Always import what you use
+import { ref, computed, reactive, watch, onMounted } from 'vue'
+
+// ❌ WRONG - Don't rely on auto-imports in script setup
+// Missing imports will cause "ref is not defined" errors
+```
+
+### Required Imports for Common Patterns
+Always include these imports when using the corresponding features:
+
+```typescript
+// For reactive state
+import { ref, reactive } from 'vue'
+
+// For computed properties
+import { computed } from 'vue'
+
+// For lifecycle hooks
+import { onMounted, onUnmounted, onUpdated } from 'vue'
+
+// For watchers
+import { watch, watchEffect } from 'vue'
+
+// For Pinia stores
+import { defineStore } from 'pinia'
+
+// For Vue composables
+import { useRouter, useRoute } from 'vue-router'
+```
+
+## Ref Access Patterns
+
+### In Components (Template)
+```vue
+<template>
+  <!-- ✅ CORRECT - Vue automatically unwraps refs in templates -->
+  <div>{{ count }}</div>
+  <button @click="increment">Count: {{ count }}</button>
+</template>
+```
+
+### In Components (Script Setup)
+```typescript
+// ✅ CORRECT - Access .value when working with refs in script
+const count = ref(0)
+const increment = () => {
+  count.value++ // Always use .value in script
+}
+
+// ❌ WRONG - Don't forget .value in script
+const increment = () => {
+  count++ // This will cause errors
+}
+```
+
+### In Store Actions
+```typescript
+// ✅ CORRECT - Always use .value when accessing refs
+export const useMyStore = defineStore('my', () => {
+  const items = ref([])
+  const loading = ref(false)
+  
+  const fetchItems = async () => {
+    loading.value = true // Use .value
+    try {
+      const response = await api.getItems()
+      items.value = response.data // Use .value
+    } finally {
+      loading.value = false // Use .value
+    }
+  }
+  
+  return { items, loading, fetchItems }
+})
+```
+
+### In Tests
+```typescript
+// ✅ CORRECT - Access .value when testing refs
+const store = useMyStore()
+store.items.value.push(newItem) // Use .value
+expect(store.loading.value).toBe(true) // Use .value
+
+// ❌ WRONG - Don't forget .value in tests
+store.items.push(newItem) // This will fail
+expect(store.loading).toBe(true) // This will fail
+```
+
+## Common Error Patterns to Avoid
+
+### 1. Missing Vue Imports
+```typescript
+// ❌ WRONG - Will cause "ref is not defined"
+const count = ref(0)
+const doubled = computed(() => count.value * 2)
+
+// ✅ CORRECT
+import { ref, computed } from 'vue'
+const count = ref(0)
+const doubled = computed(() => count.value * 2)
+```
+
+### 2. Missing Pinia Imports
+```typescript
+// ❌ WRONG - Will cause "defineStore is not defined"
+export const useStore = defineStore('main', () => {
+  // ...
+})
+
+// ✅ CORRECT
+import { defineStore } from 'pinia'
+export const useStore = defineStore('main', () => {
+  // ...
+})
+```
+
+### 3. Forgetting .value in Script
+```typescript
+// ❌ WRONG - Will cause runtime errors
+const count = ref(0)
+const increment = () => count++
+
+// ✅ CORRECT
+const count = ref(0)
+const increment = () => count.value++
+```
+
+### 4. Forgetting .value in Tests
+```typescript
+// ❌ WRONG - Will cause test failures
+const store = useStore()
+expect(store.count).toBe(0)
+
+// ✅ CORRECT
+const store = useStore()
+expect(store.count.value).toBe(0)
+```
+
+## Pre-commit Checklist
+
+Before committing Vue 3 code, verify:
+
+1. **All Vue composables are imported** in `<script setup>` blocks
+2. **All Pinia stores import `defineStore`**
+3. **All ref access uses `.value`** in script sections
+4. **All test assertions use `.value`** for ref properties
+5. **No reliance on auto-imports** in script setup blocks
+
+## IDE Configuration
+
+### VS Code / Cursor Extensions
+- Install Volar (Vue Language Features)
+- Enable TypeScript strict mode
+- Use ESLint with Vue 3 rules
+
+### Recommended ESLint Rules
+```json
+{
+  "rules": {
+    "vue/no-undef-components": "error",
+    "vue/no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": "error"
+  }
+}
+```
+
+## Testing Best Practices
+
+### Component Testing
+```typescript
+// ✅ CORRECT - Test component behavior, not implementation
+const wrapper = mount(MyComponent)
+expect(wrapper.text()).toContain('Expected Text')
+
+// ❌ WRONG - Don't test internal ref values directly
+expect(wrapper.vm.count.value).toBe(0) // Avoid this
+```
+
+### Store Testing
+```typescript
+// ✅ CORRECT - Test store behavior with .value
+const store = useMyStore()
+store.increment()
+expect(store.count.value).toBe(1)
+
+// ❌ WRONG - Don't forget .value
+expect(store.count).toBe(1) // This will fail
+```
+
+## Common Patterns Reference
+
+### Component Template
+```vue
+<template>
+  <div>
+    <p>Count: {{ count }}</p>
+    <button @click="increment">+</button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const count = ref(0)
+const increment = () => {
+  count.value++
+}
+</script>
+```
+
+### Store Definition
+```typescript
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+export const useCounterStore = defineStore('counter', () => {
+  const count = ref(0)
+  const doubleCount = computed(() => count.value * 2)
+  
+  const increment = () => {
+    count.value++
+  }
+  
+  return { count, doubleCount, increment }
+})
+```
+
+### Store Usage
+```typescript
+import { useCounterStore } from '~/stores/counter'
+
+const store = useCounterStore()
+store.increment()
+console.log(store.count.value) // Always use .value
+```
+
+## Remember
+
+- **Always import Vue composables** in script setup
+- **Always use `.value`** when accessing refs in script
+- **Always use `.value`** when testing refs
+- **Never rely on auto-imports** in script setup blocks
+- **Test behavior, not implementation** when possible
+
+This rule prevents the most common Vue 3 + TypeScript errors and ensures consistent, maintainable code.
