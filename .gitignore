@@ -49,3 +49,6 @@ prisma/dev.db-journal
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Internal tooling
+.scannerwork

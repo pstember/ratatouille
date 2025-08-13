@@ -62,18 +62,18 @@ npm install
 Create a `.env` file in the root directory:
 
 ```env
-# API Configuration
-NUXT_PUBLIC_API_BASE=https://api.spoonacular.com/recipes
-SPOONACULAR_API_KEY=your_actual_api_key_here
-
 # Database Configuration
 DATABASE_URL="file:./dev.db"
 
-# Cache Configuration
-CACHE_TTL=604800
+# API Configuration
+SPOONACULAR_API_KEY=your_actual_api_key_here
 ```
 
 **⚠️ Important**: Replace `your_actual_api_key_here` with your actual Spoonacular API key.
+
+**Optional Environment Variables** (with defaults):
+- `NUXT_PUBLIC_API_BASE`: Spoonacular API base URL (default: `https://api.spoonacular.com/recipes`)
+- `CACHE_TTL`: Cache time-to-live in seconds (default: `604800` - 7 days)
 
 ### 4. Database Setup
 
@@ -288,8 +288,12 @@ The project uses:
 For production deployment, set the following environment variables:
 
 ```env
+# Required
 DATABASE_URL="postgresql://..."  # PostgreSQL connection string
 SPOONACULAR_API_KEY="your_api_key"
+
+# Optional (with defaults)
+NUXT_PUBLIC_API_BASE="https://api.spoonacular.com/recipes"
 CACHE_TTL=604800
 ```
 
