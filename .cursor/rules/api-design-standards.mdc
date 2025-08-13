@@ -1,3 +1,9 @@
+---
+description: REST API design conventions and server route standards
+globs: ["**/server/**/*", "**/api/**/*", "**/*.api.ts"]
+alwaysApply: false
+---
+
 # API Design Standards: REST API Best Practices
 
 **THESE INSTRUCTIONS ARE CRITICAL!**

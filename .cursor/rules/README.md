@@ -10,6 +10,13 @@ This directory contains all the coding rules and standards for the Ratatouille p
 - Ensures proper planning and user approval
 - Maintains high-quality feature development
 
+### [auto-git-commit.mdc](./auto-git-commit.mdc)
+**Purpose:** Git commit guidelines with conventional commits and Git Flow workflow
+- Branch context validation and scope management
+- Conventional commit format and message structure
+- Multi-session coordination and branch organization
+- User approval workflow for commits
+
 ### [mdc-rules-organization.mdc](./mdc-rules-organization.mdc)
 **Purpose:** Guidelines for organizing and managing Cursor IDE AI MDC rules
 - Standardizes rule file organization
@@ -107,6 +114,16 @@ This directory contains all the coding rules and standards for the Ratatouille p
 - Testing best practices
 - Mock management
 
+### [testing-core-principles.mdc](./testing-core-principles.mdc)
+**Purpose:** Core testing principles and fundamental testing patterns
+- Test structure and organization
+- Async testing best practices
+- Mock management and cleanup
+- Test data management
+- Element selection patterns
+- Error handling testing
+- Coverage requirements
+
 ## Security and Code Quality Rules
 
 ### [security-best-practices.mdc](./security-best-practices.mdc)
@@ -134,22 +151,90 @@ This directory contains all the coding rules and standards for the Ratatouille p
 - Comment standards
 - Package.json scripts
 
+## Performance and Monitoring Rules
+
+### [performance-optimization.mdc](./performance-optimization.mdc)
+**Purpose:** Application performance optimization and monitoring best practices
+- Image optimization and lazy loading
+- Component lazy loading and code splitting
+- Bundle optimization and analysis
+- Memory management and cleanup
+- Caching strategies
+- Core Web Vitals optimization
+- Performance monitoring and metrics
+- Virtual scrolling for large lists
+- Debouncing and throttling
+
+### [accessibility-standards.mdc](./accessibility-standards.mdc)
+**Purpose:** Web accessibility (WCAG) standards and best practices
+- Semantic HTML structure and landmarks
+- ARIA labels and descriptions
+- Form accessibility and validation
+- Keyboard navigation support
+- Color and contrast requirements
+- Screen reader support
+- Focus management
+- Error handling and alerts
+- WCAG 2.1 AA compliance
+
+### [error-monitoring-logging.mdc](./error-monitoring-logging.mdc)
+**Purpose:** Error monitoring, logging, and debugging best practices
+- Structured error logging and monitoring
+- Error boundary implementation
+- API error handling and reporting
+- Debug utilities and performance monitoring
+- Error reporting service integration
+- Logging configuration and levels
+- Error tracking and analytics
+
+## Advanced Feature Rules
+
+### [seo-meta-tags.mdc](./seo-meta-tags.mdc)
+**Purpose:** SEO optimization and meta tag management best practices
+- Dynamic meta tags and Open Graph implementation
+- Structured data and schema markup
+- Sitemap generation and robots.txt configuration
+- SEO composables and performance optimization
+- Search engine visibility and social media sharing
+- Recipe schema markup for rich snippets
+- Performance SEO and Core Web Vitals
+
+### [pwa-features.mdc](./pwa-features.mdc)
+**Purpose:** Progressive Web App features and service worker best practices
+- App manifest configuration and installation
+- Service worker implementation and caching strategies
+- Offline support and background sync
+- Push notifications and app shortcuts
+- Native app-like experience and performance
+- Offline indicator and connection monitoring
+- Background sync for offline actions
+
+### [internationalization.mdc](./internationalization.mdc)
+**Purpose:** Internationalization (i18n) and localization best practices
+- Multi-language support and locale configuration
+- Translation file management and organization
+- Component internationalization patterns
+- Language switcher and locale routing
+- SEO-friendly i18n implementation
+- Date, number, and currency formatting
+- RTL language support and cultural considerations
+
 ## Development Workflow Rules
 
 ### [auto-git-commit.mdc](./auto-git-commit.mdc)
-**Purpose:** Automatic Git commits with conventional commit format
-- Conventional commit format
-- Automatic commit process
-- Detailed commit messages
-- Prompt analysis and reference
-- Git history maintenance
+**Purpose:** Git commit guidelines with conventional commits and Git Flow workflow
+- Branch context validation and scope management
+- Conventional commit format and message structure
+- Multi-session coordination and branch organization
+- User approval workflow for commits
 
 ## Rule Usage Guidelines
 
 ### When to Apply Rules
-- **Always Apply:** Core development workflow, security practices
-- **Context-Specific:** Component structure (Vue files), API design (server files)
-- **Quality Gates:** Testing standards, code formatting
+- **Always Apply:** Core development workflow, security practices, Git guidelines
+- **Context-Specific:** Component structure (Vue files), API design (server files), testing (test files)
+- **Quality Gates:** Testing standards, code formatting, performance optimization
+- **Production:** Error monitoring, accessibility standards
 
 ### Rule Dependencies
 - Development workflow should be followed for all new features
@@ -169,8 +254,12 @@ This directory contains all the coding rules and standards for the Ratatouille p
 2. **For Vue Components:** Follow `VUE-component-structure.mdc`
 3. **For API Development:** Use `api-design-standards.mdc`
 4. **For Database Work:** Reference `database-schema-design.mdc`
-5. **For Testing:** Apply `testing-standards.mdc`
+5. **For Testing:** Apply `testing-standards.mdc` and `testing-core-principles.mdc`
 6. **For Security:** Always follow `security-best-practices.mdc`
+7. **For Performance:** Use `performance-optimization.mdc`
+8. **For Accessibility:** Follow `accessibility-standards.mdc`
+9. **For Error Handling:** Implement `error-monitoring-logging.mdc`
+10. **For Git Workflow:** Follow `auto-git-commit.mdc`
 
 ## Specification Management
 

@@ -1,3 +1,9 @@
+---
+description: Application security standards and vulnerability prevention best practices
+globs: ["**/*.ts", "**/*.js", "**/*.vue", "**/server/**/*"]
+alwaysApply: false
+---
+
 # Security Best Practices: Application Security Standards
 
 **THESE INSTRUCTIONS ARE CRITICAL!**

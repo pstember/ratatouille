@@ -1,3 +1,9 @@
+---
+description: Vue 3 testing best practices and common testing patterns
+globs: ["**/*.test.ts", "**/*.test.js", "**/tests/**/*", "**/*.vue"]
+alwaysApply: false
+---
+
 # Vue 3 Testing Best Practices
 
 **CRITICAL**: These practices prevent the most common Vue 3 testing failures and ensure reliable test generation.

@@ -1,3 +1,9 @@
+---
+description: Prisma schema design and database performance best practices
+globs: ["**/prisma/**/*", "**/*.prisma", "**/database/**/*"]
+alwaysApply: false
+---
+
 # Database Schema Design: Prisma Best Practices
 
 **THESE INSTRUCTIONS ARE CRITICAL!**

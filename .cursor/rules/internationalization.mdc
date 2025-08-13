@@ -1,0 +1,641 @@
+---
+description: Internationalization (i18n) and localization best practices
+globs: ["**/*.{ts,js,vue}", "**/locales/**/*", "**/nuxt.config.ts"]
+alwaysApply: false
+---
+
+# Internationalization (i18n): Multi-Language Support Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure the application can be easily translated and localized for global audiences.
+
+## i18n Protocol
+
+### Nuxt i18n Configuration
+```typescript
+// ✅ Good - nuxt.config.ts i18n configuration
+export default defineNuxtConfig({
+  modules: [
+    '@nuxtjs/i18n'
+  ],
+  
+  i18n: {
+    locales: [
+      {
+        code: 'en',
+        iso: 'en-US',
+        name: 'English',
+        file: 'en.json',
+        flag: '🇺🇸'
+      },
+      {
+        code: 'fr',
+        iso: 'fr-FR',
+        name: 'Français',
+        file: 'fr.json',
+        flag: '🇫🇷'
+      },
+      {
+        code: 'es',
+        iso: 'es-ES',
+        name: 'Español',
+        file: 'es.json',
+        flag: '🇪🇸'
+      },
+      {
+        code: 'de',
+        iso: 'de-DE',
+        name: 'Deutsch',
+        file: 'de.json',
+        flag: '🇩🇪'
+      },
+      {
+        code: 'it',
+        iso: 'it-IT',
+        name: 'Italiano',
+        file: 'it.json',
+        flag: '🇮🇹'
+      }
+    ],
+    
+    defaultLocale: 'en',
+    strategy: 'prefix_except_default',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'i18n_redirected',
+      redirectOn: 'root',
+      alwaysRedirect: true,
+      fallbackLocale: 'en'
+    },
+    
+    langDir: 'locales/',
+    lazy: true,
+    seo: true,
+    
+    vueI18n: {
+      legacy: false,
+      locale: 'en',
+      fallbackLocale: 'en',
+      availableLocales: ['en', 'fr', 'es', 'de', 'it'],
+      messages: {}
+    }
+  }
+})
+```
+
+### Locale Files Structure
+```json
+// ✅ Good - locales/en.json
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "view": "View",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset",
+    "confirm": "Confirm",
+    "retry": "Retry"
+  },
+  
+  "navigation": {
+    "home": "Home",
+    "browse": "Browse Recipes",
+    "discover": "Discover",
+    "search": "Search Recipes",
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  
+  "recipe": {
+    "title": "Recipe",
+    "recipes": "Recipes",
+    "ingredients": "Ingredients",
+    "instructions": "Instructions",
+    "nutrition": "Nutrition",
+    "cookTime": "Cook Time",
+    "prepTime": "Prep Time",
+    "totalTime": "Total Time",
+    "servings": "Servings",
+    "difficulty": "Difficulty",
+    "cuisine": "Cuisine",
+    "dietary": "Dietary",
+    "allergens": "Allergens",
+    "calories": "Calories",
+    "protein": "Protein",
+    "carbs": "Carbohydrates",
+    "fat": "Fat",
+    "fiber": "Fiber",
+    "sugar": "Sugar",
+    "sodium": "Sodium",
+    "viewRecipe": "View Recipe",
+    "addToFavorites": "Add to Favorites",
+    "shareRecipe": "Share Recipe",
+    "printRecipe": "Print Recipe",
+    "serves": "Serves {count} people",
+    "readyIn": "Ready in {time} minutes",
+    "newRecipe": "New Recipe",
+    "quickMeal": "Quick Meal",
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "glutenFree": "Gluten Free"
+  },
+  
+  "search": {
+    "placeholder": "Search recipes by name or ingredients...",
+    "noResults": "No recipes found",
+    "searchResults": "Search Results",
+    "searchByCuisine": "Search by Cuisine",
+    "searchByDiet": "Search by Diet",
+    "searchByTime": "Search by Time",
+    "filters": "Filters",
+    "clearFilters": "Clear Filters",
+    "sortBy": "Sort by",
+    "sortName": "Name",
+    "sortTime": "Time",
+    "sortRating": "Rating",
+    "sortNewest": "Newest"
+  },
+  
+  "cuisine": {
+    "italian": "Italian",
+    "french": "French",
+    "mexican": "Mexican",
+    "indian": "Indian",
+    "chinese": "Chinese",
+    "japanese": "Japanese",
+    "mediterranean": "Mediterranean",
+    "american": "American",
+    "thai": "Thai",
+    "greek": "Greek",
+    "spanish": "Spanish",
+    "german": "German",
+    "korean": "Korean",
+    "vietnamese": "Vietnamese",
+    "caribbean": "Caribbean",
+    "african": "African",
+    "british": "British",
+    "cajun": "Cajun"
+  },
+  
+  "errors": {
+    "networkError": "Network error. Please check your connection.",
+    "serverError": "Server error. Please try again later.",
+    "notFound": "Page not found.",
+    "unauthorized": "You are not authorized to access this resource.",
+    "forbidden": "Access forbidden.",
+    "quotaExceeded": "API quota exceeded. Please try again tomorrow.",
+    "offline": "You are offline. Some features may be limited.",
+    "retry": "Retry",
+    "goBack": "Go Back",
+    "goHome": "Go Home"
+  },
+  
+  "quota": {
+    "title": "API Quota",
+    "used": "Used",
+    "remaining": "Remaining",
+    "daily": "Daily",
+    "limit": "Limit",
+    "exceeded": "Exceeded",
+    "confirmation": "You are approaching your daily API limit. Continue?",
+    "confirm": "Continue",
+    "cancel": "Cancel"
+  },
+  
+  "footer": {
+    "copyright": "© 2024 Ratatouille. All rights reserved.",
+    "poweredBy": "Powered by",
+    "spoonacular": "Spoonacular API",
+    "madeWith": "Made with ❤️ for food lovers"
+  }
+}
+```
+
+```json
+// ✅ Good - locales/fr.json
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "view": "Voir",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "reset": "Réinitialiser",
+    "confirm": "Confirmer",
+    "retry": "Réessayer"
+  },
+  
+  "navigation": {
+    "home": "Accueil",
+    "browse": "Parcourir les Recettes",
+    "discover": "Découvrir",
+    "search": "Rechercher des Recettes",
+    "about": "À Propos",
+    "contact": "Contact",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions d'Utilisation"
+  },
+  
+  "recipe": {
+    "title": "Recette",
+    "recipes": "Recettes",
+    "ingredients": "Ingrédients",
+    "instructions": "Instructions",
+    "nutrition": "Nutrition",
+    "cookTime": "Temps de Cuisson",
+    "prepTime": "Temps de Préparation",
+    "totalTime": "Temps Total",
+    "servings": "Portions",
+    "difficulty": "Difficulté",
+    "cuisine": "Cuisine",
+    "dietary": "Régime Alimentaire",
+    "allergens": "Allergènes",
+    "calories": "Calories",
+    "protein": "Protéines",
+    "carbs": "Glucides",
+    "fat": "Lipides",
+    "fiber": "Fibres",
+    "sugar": "Sucre",
+    "sodium": "Sodium",
+    "viewRecipe": "Voir la Recette",
+    "addToFavorites": "Ajouter aux Favoris",
+    "shareRecipe": "Partager la Recette",
+    "printRecipe": "Imprimer la Recette",
+    "serves": "Pour {count} personnes",
+    "readyIn": "Prêt en {time} minutes",
+    "newRecipe": "Nouvelle Recette",
+    "quickMeal": "Repas Rapide",
+    "vegetarian": "Végétarien",
+    "vegan": "Végétalien",
+    "glutenFree": "Sans Gluten"
+  }
+}
+```
+
+### Component Usage
+```vue
+<!-- ✅ Good - Using i18n in components -->
+<template>
+  <div class="recipe-card">
+    <h3>{{ $t('recipe.title') }}</h3>
+    
+    <div class="recipe-meta">
+      <span>{{ $t('recipe.cookTime') }}: {{ recipe.cookTime }} {{ $t('common.minutes') }}</span>
+      <span>{{ $t('recipe.servings') }}: {{ $t('recipe.serves', { count: recipe.servings }) }}</span>
+    </div>
+    
+    <div class="recipe-actions">
+      <button @click="viewRecipe">
+        {{ $t('recipe.viewRecipe') }}
+      </button>
+      
+      <button @click="shareRecipe">
+        {{ $t('recipe.shareRecipe') }}
+      </button>
+    </div>
+    
+    <!-- Pluralization -->
+    <div class="ingredients">
+      <h4>{{ $tc('recipe.ingredients', recipe.ingredients.length) }}</h4>
+      <ul>
+        <li v-for="ingredient in recipe.ingredients" :key="ingredient.id">
+          {{ ingredient.name }}
+        </li>
+      </ul>
+    </div>
+    
+    <!-- Date formatting -->
+    <div class="recipe-date">
+      {{ $d(new Date(recipe.createdAt), 'long') }}
+    </div>
+    
+    <!-- Number formatting -->
+    <div class="nutrition">
+      <span>{{ $n(recipe.nutrition.calories, 'decimal') }} {{ $t('recipe.calories') }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+const { t, tc, d, n } = useI18n()
+const route = useRoute()
+
+// Dynamic locale switching
+const switchLocale = (locale: string) => {
+  await navigateTo(switchLocalePath(locale))
+}
+
+// Get current locale
+const currentLocale = computed(() => route.params.locale || 'en')
+
+// Format recipe data based on locale
+const formattedRecipe = computed(() => ({
+  ...recipe.value,
+  formattedCookTime: t('recipe.readyIn', { time: recipe.value.cookTime }),
+  formattedServings: t('recipe.serves', { count: recipe.value.servings }),
+  formattedDate: d(new Date(recipe.value.createdAt), 'long'),
+  formattedCalories: n(recipe.value.nutrition.calories, 'decimal')
+}))
+</script>
+```
+
+### Composable Usage
+```typescript
+// ✅ Good - i18n composable
+export const useLocalization = () => {
+  const { t, tc, d, n, locale, locales } = useI18n()
+  const route = useRoute()
+  
+  // Get available locales
+  const availableLocales = computed(() => 
+    locales.value.map(l => ({
+      code: l.code,
+      name: l.name,
+      flag: l.flag,
+      isActive: l.code === locale.value
+    }))
+  )
+  
+  // Switch locale
+  const switchLocale = async (newLocale: string) => {
+    try {
+      await navigateTo(switchLocalePath(newLocale))
+    } catch (error) {
+      console.error('Failed to switch locale:', error)
+    }
+  }
+  
+  // Format recipe data
+  const formatRecipe = (recipe: Recipe) => {
+    return {
+      ...recipe,
+      formattedCookTime: t('recipe.readyIn', { time: recipe.cookTime }),
+      formattedServings: t('recipe.serves', { count: recipe.servings }),
+      formattedDate: d(new Date(recipe.createdAt), 'long'),
+      formattedCalories: n(recipe.nutrition.calories, 'decimal'),
+      formattedCuisine: t(`cuisine.${recipe.cuisine.toLowerCase()}`),
+      formattedDietary: recipe.dietaryRestrictions?.map(diet => 
+        t(`recipe.${diet.toLowerCase()}`)
+      )
+    }
+  }
+  
+  // Format search results
+  const formatSearchResults = (results: Recipe[], total: number) => {
+    return {
+      results: results.map(formatRecipe),
+      total,
+      formattedTotal: t('search.resultsFound', { count: total })
+    }
+  }
+  
+  // Get localized error message
+  const getErrorMessage = (error: any) => {
+    if (error.statusCode === 404) return t('errors.notFound')
+    if (error.statusCode === 401) return t('errors.unauthorized')
+    if (error.statusCode === 403) return t('errors.forbidden')
+    if (error.statusCode === 402) return t('errors.quotaExceeded')
+    return t('errors.networkError')
+  }
+  
+  return {
+    t,
+    tc,
+    d,
+    n,
+    locale: readonly(locale),
+    availableLocales: readonly(availableLocales),
+    switchLocale,
+    formatRecipe,
+    formatSearchResults,
+    getErrorMessage
+  }
+}
+```
+
+### Language Switcher Component
+```vue
+<!-- ✅ Good - Language switcher component -->
+<template>
+  <div class="language-switcher">
+    <button 
+      class="current-locale"
+      @click="isOpen = !isOpen"
+      :aria-label="$t('common.selectLanguage')"
+    >
+      <span class="flag">{{ currentLocale.flag }}</span>
+      <span class="name">{{ currentLocale.name }}</span>
+      <Icon name="chevron-down" class="chevron" />
+    </button>
+    
+    <div v-if="isOpen" class="locale-dropdown">
+      <button
+        v-for="locale in availableLocales"
+        :key="locale.code"
+        @click="switchLocale(locale.code)"
+        :class="{ active: locale.isActive }"
+        :aria-label="$t('common.switchToLanguage', { language: locale.name })"
+      >
+        <span class="flag">{{ locale.flag }}</span>
+        <span class="name">{{ locale.name }}</span>
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+const { availableLocales, switchLocale } = useLocalization()
+const isOpen = ref(false)
+
+const currentLocale = computed(() => 
+  availableLocales.value.find(l => l.isActive)!
+)
+
+const handleLocaleSwitch = async (localeCode: string) => {
+  isOpen.value = false
+  await switchLocale(localeCode)
+}
+
+// Close dropdown when clicking outside
+onMounted(() => {
+  const handleClickOutside = (event: Event) => {
+    if (!event.target?.closest('.language-switcher')) {
+      isOpen.value = false
+    }
+  }
+  
+  document.addEventListener('click', handleClickOutside)
+  
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+  })
+})
+</script>
+
+<style scoped>
+.language-switcher {
+  position: relative;
+}
+
+.current-locale {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background: white;
+  cursor: pointer;
+}
+
+.locale-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.locale-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.locale-dropdown button:hover {
+  background: #f3f4f6;
+}
+
+.locale-dropdown button.active {
+  background: #3b82f6;
+  color: white;
+}
+</style>
+```
+
+### SEO and Meta Tags
+```vue
+<!-- ✅ Good - SEO with i18n -->
+<template>
+  <div>
+    <Head>
+      <title>{{ pageTitle }}</title>
+      <meta name="description" :content="pageDescription" />
+      <meta property="og:title" :content="pageTitle" />
+      <meta property="og:description" :content="pageDescription" />
+      <meta property="og:locale" :content="locale" />
+      <meta property="og:locale:alternate" :content="alternateLocales" />
+      <link rel="alternate" hreflang="en" href="/en" />
+      <link rel="alternate" hreflang="fr" href="/fr" />
+      <link rel="alternate" hreflang="es" href="/es" />
+      <link rel="alternate" hreflang="de" href="/de" />
+      <link rel="alternate" hreflang="it" href="/it" />
+    </Head>
+    
+    <!-- Page content -->
+  </div>
+</template>
+
+<script setup lang="ts">
+const { t, locale, locales } = useI18n()
+const route = useRoute()
+
+const pageTitle = computed(() => {
+  if (route.name === 'recipe-id') {
+    return `${recipe.value.name} - ${t('recipe.title')} - Ratatouille`
+  }
+  return t('navigation.home') + ' - Ratatouille'
+})
+
+const pageDescription = computed(() => {
+  if (route.name === 'recipe-id') {
+    return t('recipe.description', { 
+      name: recipe.value.name,
+      time: recipe.value.cookTime,
+      servings: recipe.value.servings
+    })
+  }
+  return t('common.siteDescription')
+})
+
+const alternateLocales = computed(() => 
+  locales.value
+    .filter(l => l.code !== locale.value)
+    .map(l => l.code)
+    .join(', ')
+)
+</script>
+```
+
+## i18n Checklist
+
+### Configuration
+- [ ] Nuxt i18n module properly configured
+- [ ] Locale files created for all supported languages
+- [ ] Default locale and fallback locale set
+- [ ] Browser language detection enabled
+- [ ] SEO-friendly URL structure configured
+
+### Translation Files
+- [ ] All user-facing text translated
+- [ ] Pluralization rules implemented
+- [ ] Date and number formatting configured
+- [ ] Currency formatting for different regions
+- [ ] RTL language support if needed
+
+### Components
+- [ ] All components use i18n functions
+- [ ] Dynamic content properly translated
+- [ ] Language switcher component implemented
+- [ ] Locale-aware routing configured
+- [ ] SEO meta tags localized
+
+### Testing
+- [ ] Translation coverage testing
+- [ ] Locale switching functionality tested
+- [ ] RTL layout testing if applicable
+- [ ] Date and number formatting tested
+- [ ] SEO meta tags testing
+
+## Remember
+
+**Internationalization should be implemented from the start, not added later. Always use i18n functions for user-facing text and consider cultural differences in formatting.**
+
+---
+
+*This rule ensures the application can be easily translated and localized for global audiences.*

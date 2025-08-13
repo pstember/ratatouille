@@ -1,0 +1,503 @@
+---
+description: Error monitoring, logging, and debugging best practices
+globs: ["**/*.{ts,js}", "**/server/**/*", "**/plugins/**/*"]
+alwaysApply: false
+---
+
+# Error Monitoring & Logging: Production Debugging Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure robust error handling, comprehensive logging, and effective debugging in production environments.
+
+## Error Monitoring Protocol
+
+### Structured Error Logging
+```typescript
+// ✅ Good - Structured error logging
+interface LogEntry {
+  timestamp: string
+  level: 'info' | 'warn' | 'error' | 'debug'
+  message: string
+  context: {
+    userId?: string
+    requestId?: string
+    url?: string
+    method?: string
+    userAgent?: string
+    ip?: string
+  }
+  error?: {
+    name: string
+    message: string
+    stack?: string
+    code?: string
+  }
+  metadata?: Record<string, any>
+}
+
+// ✅ Good - Centralized logging utility
+export const useLogger = () => {
+  const log = (level: LogEntry['level'], message: string, context?: LogEntry['context'], error?: Error, metadata?: Record<string, any>) => {
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      context: {
+        ...context,
+        requestId: getRequestId(),
+        url: window?.location?.href,
+        userAgent: navigator?.userAgent
+      },
+      metadata
+    }
+
+    if (error) {
+      entry.error = {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: (error as any).code
+      }
+    }
+
+    // Send to logging service
+    sendToLoggingService(entry)
+    
+    // Console logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console[level](message, { context: entry.context, error: entry.error, metadata })
+    }
+  }
+
+  return {
+    info: (message: string, context?: LogEntry['context'], metadata?: Record<string, any>) => 
+      log('info', message, context, undefined, metadata),
+    warn: (message: string, context?: LogEntry['context'], error?: Error, metadata?: Record<string, any>) => 
+      log('warn', message, context, error, metadata),
+    error: (message: string, context?: LogEntry['context'], error?: Error, metadata?: Record<string, any>) => 
+      log('error', message, context, error, metadata),
+    debug: (message: string, context?: LogEntry['context'], metadata?: Record<string, any>) => 
+      log('debug', message, context, undefined, metadata)
+  }
+}
+```
+
+### Error Boundary Implementation
+```vue
+<!-- ✅ Good - Vue error boundary component -->
+<template>
+  <div>
+    <div v-if="error" class="error-boundary">
+      <h2>Something went wrong</h2>
+      <p>{{ error.message }}</p>
+      <button @click="resetError">Try again</button>
+      
+      <details v-if="showDetails">
+        <summary>Error Details</summary>
+        <pre>{{ error.stack }}</pre>
+      </details>
+    </div>
+    
+    <slot v-else />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onErrorCaptured } from 'vue'
+import { useLogger } from '~/composables/useLogger'
+
+const error = ref<Error | null>(null)
+const showDetails = ref(false)
+const logger = useLogger()
+
+onErrorCaptured((err, instance, info) => {
+  error.value = err
+  
+  // Log error with context
+  logger.error('Component error captured', {
+    componentName: instance?.$options?.name || 'Unknown',
+    componentFile: instance?.$options?.__file,
+    errorInfo: info
+  }, err, {
+    componentStack: info,
+    timestamp: new Date().toISOString()
+  })
+  
+  // Send to error monitoring service
+  sendToErrorMonitoring(err, {
+    component: instance?.$options?.name,
+    info,
+    url: window.location.href,
+    userAgent: navigator.userAgent
+  })
+  
+  return false // Prevent error from propagating
+})
+
+const resetError = () => {
+  error.value = null
+  showDetails.value = false
+}
+</script>
+```
+
+### API Error Handling
+```typescript
+// ✅ Good - API error handling middleware
+// server/middleware/error-handler.ts
+export default defineEventHandler(async (event) => {
+  const startTime = Date.now()
+  const requestId = generateRequestId()
+  
+  try {
+    // Add request ID to context
+    event.context.requestId = requestId
+    
+    // Log request start
+    console.log(`[${requestId}] ${getMethod(event)} ${getRequestURL(event).pathname} - Started`)
+    
+    const result = await handleRequest(event)
+    
+    // Log successful request
+    const duration = Date.now() - startTime
+    console.log(`[${requestId}] ${getMethod(event)} ${getRequestURL(event).pathname} - Completed (${duration}ms)`)
+    
+    return result
+  } catch (error) {
+    const duration = Date.now() - startTime
+    
+    // Log error with context
+    console.error(`[${requestId}] ${getMethod(event)} ${getRequestURL(event).pathname} - Error (${duration}ms):`, {
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: error.statusCode
+      },
+      request: {
+        method: getMethod(event),
+        url: getRequestURL(event).href,
+        headers: getHeaders(event),
+        query: getQuery(event)
+      },
+      context: {
+        requestId,
+        duration,
+        timestamp: new Date().toISOString()
+      }
+    })
+    
+    // Send to error monitoring service
+    await sendToErrorMonitoring(error, {
+      requestId,
+      method: getMethod(event),
+      url: getRequestURL(event).href,
+      duration,
+      headers: getHeaders(event)
+    })
+    
+    // Return appropriate error response
+    if (error.statusCode) {
+      throw error
+    }
+    
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+      data: {
+        requestId,
+        timestamp: new Date().toISOString()
+      }
+    })
+  }
+})
+
+// ✅ Good - Custom error classes
+class ApiError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code?: string,
+    public context?: Record<string, any>
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
+class ValidationError extends ApiError {
+  constructor(message: string, public field?: string) {
+    super(message, 422, 'VALIDATION_ERROR')
+    this.name = 'ValidationError'
+  }
+}
+
+class NotFoundError extends ApiError {
+  constructor(resource: string) {
+    super(`${resource} not found`, 404, 'NOT_FOUND')
+    this.name = 'NotFoundError'
+  }
+}
+```
+
+### Performance Monitoring
+```typescript
+// ✅ Good - Performance monitoring
+export const usePerformanceMonitor = () => {
+  const metrics = ref({
+    pageLoadTime: 0,
+    apiResponseTime: 0,
+    memoryUsage: 0,
+    errors: [] as Array<{ timestamp: string; message: string; stack?: string }>
+  })
+  
+  const measurePageLoad = () => {
+    if ('performance' in window) {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+      metrics.value.pageLoadTime = navigation.loadEventEnd - navigation.loadEventStart
+    }
+  }
+  
+  const measureApiCall = async <T>(apiCall: Promise<T>): Promise<T> => {
+    const startTime = performance.now()
+    
+    try {
+      const result = await apiCall
+      const endTime = performance.now()
+      metrics.value.apiResponseTime = endTime - startTime
+      return result
+    } catch (error) {
+      const endTime = performance.now()
+      metrics.value.apiResponseTime = endTime - startTime
+      throw error
+    }
+  }
+  
+  const trackError = (error: Error) => {
+    metrics.value.errors.push({
+      timestamp: new Date().toISOString(),
+      message: error.message,
+      stack: error.stack
+    })
+    
+    // Send to monitoring service
+    sendToErrorMonitoring(error, {
+      pageLoadTime: metrics.value.pageLoadTime,
+      apiResponseTime: metrics.value.apiResponseTime
+    })
+  }
+  
+  const getMemoryUsage = () => {
+    if ('memory' in performance) {
+      const memory = (performance as any).memory
+      metrics.value.memoryUsage = memory.usedJSHeapSize / memory.totalJSHeapSize
+    }
+  }
+  
+  onMounted(() => {
+    measurePageLoad()
+    getMemoryUsage()
+    
+    // Monitor for errors
+    window.addEventListener('error', (event) => {
+      trackError(event.error)
+    })
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      trackError(new Error(event.reason))
+    })
+  })
+  
+  return {
+    metrics: readonly(metrics),
+    measureApiCall,
+    trackError,
+    getMemoryUsage
+  }
+}
+```
+
+### Debug Utilities
+```typescript
+// ✅ Good - Debug utilities for development
+export const useDebugger = () => {
+  const isDebugMode = ref(process.env.NODE_ENV === 'development')
+  
+  const debug = (message: string, data?: any) => {
+    if (isDebugMode.value) {
+      console.log(`[DEBUG] ${message}`, data)
+    }
+  }
+  
+  const debugComponent = (componentName: string, action: string, data?: any) => {
+    debug(`[${componentName}] ${action}`, data)
+  }
+  
+  const debugApi = (endpoint: string, method: string, data?: any) => {
+    debug(`[API] ${method} ${endpoint}`, data)
+  }
+  
+  const debugStore = (storeName: string, action: string, data?: any) => {
+    debug(`[STORE:${storeName}] ${action}`, data)
+  }
+  
+  const enableDebugMode = () => {
+    isDebugMode.value = true
+    localStorage.setItem('debug-mode', 'true')
+  }
+  
+  const disableDebugMode = () => {
+    isDebugMode.value = false
+    localStorage.removeItem('debug-mode')
+  }
+  
+  // Check for debug mode in localStorage
+  onMounted(() => {
+    if (localStorage.getItem('debug-mode') === 'true') {
+      isDebugMode.value = true
+    }
+  })
+  
+  return {
+    isDebugMode: readonly(isDebugMode),
+    debug,
+    debugComponent,
+    debugApi,
+    debugStore,
+    enableDebugMode,
+    disableDebugMode
+  }
+}
+```
+
+### Error Reporting Service Integration
+```typescript
+// ✅ Good - Error reporting service integration
+export const useErrorReporting = () => {
+  const reportError = async (error: Error, context?: Record<string, any>) => {
+    const errorReport = {
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      },
+      context: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        ...context
+      },
+      user: {
+        id: getCurrentUserId(),
+        sessionId: getSessionId()
+      }
+    }
+    
+    try {
+      await $fetch('/api/errors', {
+        method: 'POST',
+        body: errorReport
+      })
+    } catch (reportingError) {
+      // Fallback to console if error reporting fails
+      console.error('Failed to report error:', reportingError)
+      console.error('Original error:', error)
+    }
+  }
+  
+  const reportApiError = async (error: any, endpoint: string, method: string) => {
+    await reportError(error, {
+      type: 'api_error',
+      endpoint,
+      method,
+      statusCode: error.statusCode,
+      responseData: error.data
+    })
+  }
+  
+  const reportComponentError = async (error: Error, componentName: string, props?: any) => {
+    await reportError(error, {
+      type: 'component_error',
+      componentName,
+      props: JSON.stringify(props)
+    })
+  }
+  
+  return {
+    reportError,
+    reportApiError,
+    reportComponentError
+  }
+}
+```
+
+### Logging Configuration
+```typescript
+// ✅ Good - Logging configuration
+// nuxt.config.ts
+export default defineNuxtConfig({
+  runtimeConfig: {
+    // Private keys (server-side only)
+    logging: {
+      level: process.env.LOG_LEVEL || 'info',
+      service: process.env.LOGGING_SERVICE || 'console',
+      apiKey: process.env.LOGGING_API_KEY
+    },
+    
+    // Public keys (exposed to client)
+    public: {
+      errorReporting: {
+        enabled: process.env.ERROR_REPORTING_ENABLED === 'true',
+        service: process.env.ERROR_REPORTING_SERVICE || 'sentry',
+        dsn: process.env.ERROR_REPORTING_DSN
+      }
+    }
+  }
+})
+
+// ✅ Good - Environment-specific logging
+const getLogLevel = () => {
+  const config = useRuntimeConfig()
+  return config.logging.level
+}
+
+const shouldLog = (level: string) => {
+  const levels = ['debug', 'info', 'warn', 'error']
+  const currentLevel = getLogLevel()
+  return levels.indexOf(level) >= levels.indexOf(currentLevel)
+}
+```
+
+## Error Monitoring Checklist
+
+### Before Deployment
+- [ ] Error boundaries implemented for all major components
+- [ ] Structured logging configured
+- [ ] Error reporting service integrated
+- [ ] Performance monitoring enabled
+- [ ] Debug utilities available for development
+
+### Monitoring Setup
+- [ ] Error tracking service (Sentry, LogRocket, etc.)
+- [ ] Performance monitoring (Lighthouse CI, Web Vitals)
+- [ ] Log aggregation (ELK Stack, Datadog, etc.)
+- [ ] Alert system for critical errors
+- [ ] Dashboard for error metrics
+
+### Best Practices
+- [ ] Log structured data, not strings
+- [ ] Include context with every error
+- [ ] Use appropriate log levels
+- [ ] Don't log sensitive information
+- [ ] Implement error boundaries
+- [ ] Monitor performance metrics
+- [ ] Set up automated alerts
+
+## Remember
+
+**Effective error monitoring and logging are crucial for maintaining production applications. Always include context, use structured logging, and implement proper error boundaries.**
+
+---
+
+*This rule ensures robust error handling, comprehensive logging, and effective debugging in production environments.*

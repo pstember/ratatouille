@@ -1,3 +1,9 @@
+---
+description: Consistent code style and formatting guidelines
+globs: ["**/*.{ts,tsx,js,jsx,vue}"]
+alwaysApply: false
+---
+
 # Code Formatting Standards: Consistent Code Style
 
 **THESE INSTRUCTIONS ARE CRITICAL!**

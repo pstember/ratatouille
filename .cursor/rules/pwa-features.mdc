@@ -1,0 +1,673 @@
+---
+description: Progressive Web App features and service worker best practices
+globs: ["**/*.{ts,js}", "**/public/**/*", "**/plugins/**/*", "**/nuxt.config.ts"]
+alwaysApply: false
+---
+
+# Progressive Web App (PWA): Offline Support and App Features
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure a modern, installable web application with offline capabilities and native app-like experience.
+
+## PWA Protocol
+
+### App Manifest Configuration
+```json
+// ✅ Good - public/manifest.json
+{
+  "name": "Ratatouille - Recipe Discovery Platform",
+  "short_name": "Ratatouille",
+  "description": "Discover and explore thousands of delicious recipes from around the world",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["food", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search Recipes",
+      "short_name": "Search",
+      "description": "Search for recipes by ingredients or name",
+      "url": "/?shortcut=search",
+      "icons": [
+        {
+          "src": "/icons/search-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Browse Recipes",
+      "short_name": "Browse",
+      "description": "Browse all available recipes",
+      "url": "/browse?shortcut=browse",
+      "icons": [
+        {
+          "src": "/icons/browse-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Discover Recipe",
+      "short_name": "Discover",
+      "description": "Discover a random recipe",
+      "url": "/discover?shortcut=discover",
+      "icons": [
+        {
+          "src": "/icons/discover-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Service Worker Implementation
+```typescript
+// ✅ Good - public/sw.js
+const CACHE_NAME = 'ratatouille-v1.0.0'
+const STATIC_CACHE = 'ratatouille-static-v1.0.0'
+const DYNAMIC_CACHE = 'ratatouille-dynamic-v1.0.0'
+
+// Static assets to cache
+const STATIC_ASSETS = [
+  '/',
+  '/browse',
+  '/discover',
+  '/offline',
+  '/css/main.css',
+  '/js/app.js',
+  '/images/logo.png',
+  '/images/placeholder.jpg',
+  '/fonts/main.woff2'
+]
+
+// API endpoints to cache
+const API_CACHE_PATTERNS = [
+  /\/api\/recipes/,
+  /\/api\/recipe\/\d+/,
+  /\/api\/quota/
+]
+
+// Install event - cache static assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then(cache => {
+        console.log('Caching static assets')
+        return cache.addAll(STATIC_ASSETS)
+      })
+      .then(() => {
+        console.log('Static assets cached successfully')
+        return self.skipWaiting()
+      })
+  )
+})
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+              console.log('Deleting old cache:', cacheName)
+              return caches.delete(cacheName)
+            }
+          })
+        )
+      })
+      .then(() => {
+        console.log('Service worker activated')
+        return self.clients.claim()
+      })
+  )
+})
+
+// Fetch event - serve from cache or network
+self.addEventListener('fetch', (event) => {
+  const { request } = event
+  const url = new URL(request.url)
+
+  // Handle API requests
+  if (API_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname))) {
+    event.respondWith(handleApiRequest(request))
+    return
+  }
+
+  // Handle static assets
+  if (request.method === 'GET') {
+    event.respondWith(handleStaticRequest(request))
+    return
+  }
+})
+
+// Handle API requests with cache-first strategy
+async function handleApiRequest(request) {
+  try {
+    // Try network first
+    const networkResponse = await fetch(request)
+    
+    if (networkResponse.ok) {
+      // Cache the response
+      const cache = await caches.open(DYNAMIC_CACHE)
+      cache.put(request, networkResponse.clone())
+      return networkResponse
+    }
+    
+    throw new Error('Network response not ok')
+  } catch (error) {
+    // Fallback to cache
+    const cachedResponse = await caches.match(request)
+    if (cachedResponse) {
+      return cachedResponse
+    }
+    
+    // Return offline response for API requests
+    return new Response(
+      JSON.stringify({ 
+        error: 'Offline mode', 
+        message: 'Please check your internet connection' 
+      }),
+      { 
+        status: 503, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+}
+
+// Handle static requests with cache-first strategy
+async function handleStaticRequest(request) {
+  const cachedResponse = await caches.match(request)
+  
+  if (cachedResponse) {
+    return cachedResponse
+  }
+  
+  try {
+    const networkResponse = await fetch(request)
+    
+    if (networkResponse.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE)
+      cache.put(request, networkResponse.clone())
+    }
+    
+    return networkResponse
+  } catch (error) {
+    // Return offline page for navigation requests
+    if (request.mode === 'navigate') {
+      return caches.match('/offline')
+    }
+    
+    throw error
+  }
+}
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    event.waitUntil(performBackgroundSync())
+  }
+})
+
+async function performBackgroundSync() {
+  try {
+    // Sync any pending offline actions
+    const pendingActions = await getPendingActions()
+    
+    for (const action of pendingActions) {
+      await performAction(action)
+    }
+    
+    console.log('Background sync completed')
+  } catch (error) {
+    console.error('Background sync failed:', error)
+  }
+}
+
+// Push notifications
+self.addEventListener('push', (event) => {
+  const options = {
+    body: event.data ? event.data.text() : 'New recipe available!',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    },
+    actions: [
+      {
+        action: 'explore',
+        title: 'Explore Recipe',
+        icon: '/icons/explore.png'
+      },
+      {
+        action: 'close',
+        title: 'Close',
+        icon: '/icons/close.png'
+      }
+    ]
+  }
+
+  event.waitUntil(
+    self.registration.showNotification('Ratatouille', options)
+  )
+})
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  if (event.action === 'explore') {
+    event.waitUntil(
+      clients.openWindow('/discover')
+    )
+  }
+})
+```
+
+### PWA Plugin Configuration
+```typescript
+// ✅ Good - plugins/pwa.client.ts
+export default defineNuxtPlugin(() => {
+  if (process.client) {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration)
+            
+            // Handle updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing
+              newWorker?.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content available
+                  showUpdateNotification()
+                }
+              })
+            })
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError)
+          })
+      })
+    }
+
+    // Handle app installation
+    let deferredPrompt: any
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault()
+      deferredPrompt = e
+      showInstallPrompt()
+    })
+
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed')
+      hideInstallPrompt()
+    })
+  }
+})
+
+// Show update notification
+function showUpdateNotification() {
+  const notification = document.createElement('div')
+  notification.className = 'pwa-update-notification'
+  notification.innerHTML = `
+    <div class="pwa-update-content">
+      <p>New version available!</p>
+      <button onclick="window.location.reload()">Update Now</button>
+      <button onclick="this.parentElement.parentElement.remove()">Later</button>
+    </div>
+  `
+  document.body.appendChild(notification)
+}
+
+// Show install prompt
+function showInstallPrompt() {
+  const installButton = document.createElement('button')
+  installButton.className = 'pwa-install-button'
+  installButton.textContent = 'Install App'
+  installButton.onclick = () => {
+    deferredPrompt.prompt()
+    deferredPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt')
+      }
+      deferredPrompt = null
+    })
+  }
+  document.body.appendChild(installButton)
+}
+
+// Hide install prompt
+function hideInstallPrompt() {
+  const installButton = document.querySelector('.pwa-install-button')
+  if (installButton) {
+    installButton.remove()
+  }
+}
+```
+
+### Offline Support Components
+```vue
+<!-- ✅ Good - components/OfflineIndicator.vue -->
+<template>
+  <div v-if="isOffline" class="offline-indicator">
+    <div class="offline-content">
+      <Icon name="wifi-off" class="offline-icon" />
+      <span>You're offline. Some features may be limited.</span>
+      <button @click="retryConnection" class="retry-button">
+        Retry Connection
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+const isOffline = ref(false)
+const isRetrying = ref(false)
+
+// Monitor online/offline status
+onMounted(() => {
+  const updateOnlineStatus = () => {
+    isOffline.value = !navigator.onLine
+  }
+
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+  updateOnlineStatus()
+
+  onUnmounted(() => {
+    window.removeEventListener('online', updateOnlineStatus)
+    window.removeEventListener('offline', updateOnlineStatus)
+  })
+})
+
+const retryConnection = async () => {
+  isRetrying.value = true
+  
+  try {
+    // Test connection
+    await fetch('/api/health', { 
+      method: 'HEAD',
+      cache: 'no-cache'
+    })
+    isOffline.value = false
+  } catch (error) {
+    console.log('Still offline')
+  } finally {
+    isRetrying.value = false
+  }
+}
+</script>
+
+<style scoped>
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #f59e0b;
+  color: white;
+  padding: 0.5rem;
+  z-index: 1000;
+  text-align: center;
+}
+
+.offline-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.retry-button {
+  background: white;
+  color: #f59e0b;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+</style>
+```
+
+### PWA Composable
+```typescript
+// ✅ Good - composables/usePWA.ts
+export const usePWA = () => {
+  const isInstalled = ref(false)
+  const canInstall = ref(false)
+  const isOnline = ref(true)
+  const deferredPrompt = ref<any>(null)
+
+  // Check if app is installed
+  const checkInstallation = () => {
+    if (process.client) {
+      // Check if running in standalone mode
+      isInstalled.value = window.matchMedia('(display-mode: standalone)').matches ||
+                          (window.navigator as any).standalone === true
+    }
+  }
+
+  // Handle install prompt
+  const handleInstallPrompt = (e: Event) => {
+    e.preventDefault()
+    deferredPrompt.value = e
+    canInstall.value = true
+  }
+
+  // Install app
+  const installApp = async () => {
+    if (!deferredPrompt.value) return
+
+    deferredPrompt.value.prompt()
+    const { outcome } = await deferredPrompt.value.userChoice
+    
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt')
+      isInstalled.value = true
+    }
+    
+    deferredPrompt.value = null
+    canInstall.value = false
+  }
+
+  // Monitor online status
+  const updateOnlineStatus = () => {
+    isOnline.value = navigator.onLine
+  }
+
+  // Background sync
+  const performBackgroundSync = async (tag: string) => {
+    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+      const registration = await navigator.serviceWorker.ready
+      await registration.sync.register(tag)
+    }
+  }
+
+  // Send push notification
+  const sendPushNotification = async (title: string, options: NotificationOptions) => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const registration = await navigator.serviceWorker.ready
+      await registration.showNotification(title, options)
+    }
+  }
+
+  // Request notification permission
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission()
+      return permission === 'granted'
+    }
+    return false
+  }
+
+  // Subscribe to push notifications
+  const subscribeToPushNotifications = async () => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: 'your-vapid-public-key'
+      })
+      return subscription
+    }
+    return null
+  }
+
+  onMounted(() => {
+    if (process.client) {
+      checkInstallation()
+      
+      window.addEventListener('beforeinstallprompt', handleInstallPrompt)
+      window.addEventListener('online', updateOnlineStatus)
+      window.addEventListener('offline', updateOnlineStatus)
+      updateOnlineStatus()
+    }
+  })
+
+  onUnmounted(() => {
+    if (process.client) {
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
+      window.removeEventListener('online', updateOnlineStatus)
+      window.removeEventListener('offline', updateOnlineStatus)
+    }
+  })
+
+  return {
+    isInstalled: readonly(isInstalled),
+    canInstall: readonly(canInstall),
+    isOnline: readonly(isOnline),
+    installApp,
+    performBackgroundSync,
+    sendPushNotification,
+    requestNotificationPermission,
+    subscribeToPushNotifications
+  }
+}
+```
+
+## PWA Checklist
+
+### App Manifest
+- [ ] Valid manifest.json with all required fields
+- [ ] Appropriate app icons in multiple sizes
+- [ ] Theme colors and background colors defined
+- [ ] Display mode set to standalone
+- [ ] App shortcuts configured
+- [ ] Screenshots for app stores
+
+### Service Worker
+- [ ] Service worker registered properly
+- [ ] Static assets cached on install
+- [ ] Dynamic caching for API responses
+- [ ] Offline fallback pages
+- [ ] Cache cleanup on updates
+- [ ] Background sync implementation
+
+### Offline Support
+- [ ] Offline indicator component
+- [ ] Graceful degradation for offline mode
+- [ ] Cached data access when offline
+- [ ] Offline page for navigation
+- [ ] Connection status monitoring
+
+### Installation
+- [ ] Install prompt handling
+- [ ] Before install prompt event
+- [ ] App installed event
+- [ ] Installation status detection
+- [ ] Install button component
+
+### Performance
+- [ ] Fast loading times
+- [ ] Efficient caching strategies
+- [ ] Minimal service worker size
+- [ ] Optimized asset delivery
+- [ ] Background sync for updates
+
+## Remember
+
+**PWA features should enhance the user experience without compromising performance. Focus on offline functionality, fast loading, and native app-like behavior.**
+
+---
+
+*This rule ensures a modern, installable web application with offline capabilities and native app-like experience.*

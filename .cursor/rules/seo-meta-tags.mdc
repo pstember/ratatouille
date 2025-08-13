@@ -1,0 +1,414 @@
+---
+description: SEO optimization and meta tag management best practices
+globs: ["**/*.vue", "**/pages/**/*", "**/layouts/**/*", "**/nuxt.config.ts"]
+alwaysApply: false
+---
+
+# SEO & Meta Tags: Search Engine Optimization Best Practices
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure optimal search engine visibility, social media sharing, and user discoverability.
+
+## SEO Protocol
+
+### Page Meta Tags
+```vue
+<!-- ✅ Good - Comprehensive meta tags -->
+<template>
+  <div>
+    <Head>
+      <!-- Basic Meta Tags -->
+      <title>{{ pageTitle }}</title>
+      <meta name="description" :content="pageDescription" />
+      <meta name="keywords" :content="pageKeywords" />
+      <meta name="author" content="Ratatouille Recipe Platform" />
+      
+      <!-- Open Graph Tags -->
+      <meta property="og:title" :content="pageTitle" />
+      <meta property="og:description" :content="pageDescription" />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" :content="pageUrl" />
+      <meta property="og:image" :content="pageImage" />
+      <meta property="og:site_name" content="Ratatouille" />
+      
+      <!-- Twitter Card Tags -->
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" :content="pageTitle" />
+      <meta name="twitter:description" :content="pageDescription" />
+      <meta name="twitter:image" :content="pageImage" />
+      
+      <!-- Additional SEO Tags -->
+      <meta name="robots" content="index, follow" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <link rel="canonical" :href="pageUrl" />
+      
+      <!-- Structured Data -->
+      <script type="application/ld+json" v-html="structuredData" />
+    </Head>
+    
+    <!-- Page content -->
+    <main>
+      <h1>{{ pageTitle }}</h1>
+      <!-- Content here -->
+    </main>
+  </div>
+</template>
+
+<script setup lang="ts">
+const route = useRoute()
+const config = useRuntimeConfig()
+
+// Dynamic meta tags based on content
+const pageTitle = computed(() => {
+  if (route.name === 'recipe-id') {
+    return `${recipe.value.name} Recipe - Ratatouille`
+  }
+  return 'Discover Amazing Recipes - Ratatouille'
+})
+
+const pageDescription = computed(() => {
+  if (route.name === 'recipe-id') {
+    return `${recipe.value.name}: ${recipe.value.description}. Cook time: ${recipe.value.cookTime} minutes. Serves ${recipe.value.servings} people.`
+  }
+  return 'Discover and explore thousands of delicious recipes from around the world. Search by ingredients, cuisine, or dietary preferences.'
+})
+
+const pageKeywords = computed(() => {
+  if (route.name === 'recipe-id') {
+    return `${recipe.value.name}, recipe, cooking, ${recipe.value.cuisine}, ${recipe.value.dietaryRestrictions?.join(', ')}`
+  }
+  return 'recipes, cooking, food, cuisine, ingredients, dietary, vegetarian, vegan, gluten-free'
+})
+
+const pageUrl = computed(() => {
+  return `${config.public.siteUrl}${route.path}`
+})
+
+const pageImage = computed(() => {
+  if (route.name === 'recipe-id' && recipe.value.image) {
+    return recipe.value.image
+  }
+  return `${config.public.siteUrl}/images/default-recipe.jpg`
+})
+
+// Structured data for recipes
+const structuredData = computed(() => {
+  if (route.name === 'recipe-id') {
+    return JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Recipe',
+      name: recipe.value.name,
+      description: recipe.value.description,
+      image: recipe.value.image,
+      author: {
+        '@type': 'Organization',
+        name: 'Ratatouille'
+      },
+      datePublished: recipe.value.createdAt,
+      prepTime: `PT${recipe.value.prepTime}M`,
+      cookTime: `PT${recipe.value.cookTime}M`,
+      totalTime: `PT${recipe.value.prepTime + recipe.value.cookTime}M`,
+      recipeYield: `${recipe.value.servings} servings`,
+      recipeCategory: recipe.value.cuisine,
+      recipeCuisine: recipe.value.cuisine,
+      nutrition: {
+        '@type': 'NutritionInformation',
+        calories: `${recipe.value.nutrition?.calories} calories`,
+        proteinContent: `${recipe.value.nutrition?.protein}g protein`,
+        carbohydrateContent: `${recipe.value.nutrition?.carbs}g carbohydrates`,
+        fatContent: `${recipe.value.nutrition?.fat}g fat`
+      },
+      recipeIngredient: recipe.value.ingredients?.map(ing => ing.name) || [],
+      recipeInstructions: recipe.value.instructions?.map((instruction, index) => ({
+        '@type': 'HowToStep',
+        position: index + 1,
+        text: instruction
+      })) || []
+    })
+  }
+  
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Ratatouille',
+    description: 'Recipe Discovery Platform',
+    url: config.public.siteUrl,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${config.public.siteUrl}/search?q={search_term_string}`,
+      'query-input': 'required name=search_term_string'
+    }
+  })
+})
+</script>
+```
+
+### Nuxt Configuration
+```typescript
+// ✅ Good - SEO configuration in nuxt.config.ts
+export default defineNuxtConfig({
+  // SEO and meta configuration
+  app: {
+    head: {
+      title: 'Ratatouille - Recipe Discovery Platform',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'description', content: 'Discover and explore thousands of delicious recipes from around the world. Search by ingredients, cuisine, or dietary preferences.' },
+        { name: 'keywords', content: 'recipes, cooking, food, cuisine, ingredients, dietary, vegetarian, vegan, gluten-free' },
+        { name: 'author', content: 'Ratatouille Recipe Platform' },
+        { name: 'robots', content: 'index, follow' },
+        
+        // Open Graph
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'Ratatouille' },
+        { property: 'og:title', content: 'Ratatouille - Recipe Discovery Platform' },
+        { property: 'og:description', content: 'Discover and explore thousands of delicious recipes from around the world.' },
+        { property: 'og:image', content: '/images/og-image.jpg' },
+        
+        // Twitter
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:site', content: '@ratatouille' },
+        { name: 'twitter:title', content: 'Ratatouille - Recipe Discovery Platform' },
+        { name: 'twitter:description', content: 'Discover and explore thousands of delicious recipes from around the world.' },
+        { name: 'twitter:image', content: '/images/twitter-image.jpg' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/manifest.json' }
+      ]
+    }
+  },
+  
+  // Runtime config for SEO
+  runtimeConfig: {
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://ratatouille.example.com'
+    }
+  }
+})
+```
+
+### Sitemap Generation
+```typescript
+// ✅ Good - Dynamic sitemap generation
+// server/api/sitemap.xml.ts
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+  const baseUrl = config.public.siteUrl
+  
+  // Get all recipes for sitemap
+  const recipes = await prisma.recipe.findMany({
+    select: { id: true, updatedAt: true }
+  })
+  
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/browse</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/discover</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  ${recipes.map(recipe => `
+  <url>
+    <loc>${baseUrl}/recipe/${recipe.id}</loc>
+    <lastmod>${recipe.updatedAt.toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  `).join('')}
+</urlset>`
+  
+  setHeader(event, 'Content-Type', 'application/xml')
+  return sitemap
+})
+```
+
+### Robots.txt
+```typescript
+// ✅ Good - Robots.txt generation
+// server/api/robots.txt.ts
+export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+  const baseUrl = config.public.siteUrl
+  
+  const robotsTxt = `User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: ${baseUrl}/api/sitemap.xml
+
+# Disallow admin areas
+Disallow: /admin/
+Disallow: /api/admin/
+
+# Allow important pages
+Allow: /recipe/
+Allow: /browse
+Allow: /discover
+
+# Crawl delay for API endpoints
+User-agent: *
+Crawl-delay: 1
+Disallow: /api/quota
+Disallow: /api/health`
+  
+  setHeader(event, 'Content-Type', 'text/plain')
+  return robotsTxt
+})
+```
+
+### SEO Composable
+```typescript
+// ✅ Good - SEO composable for dynamic meta tags
+export const useSEO = () => {
+  const route = useRoute()
+  const config = useRuntimeConfig()
+  
+  const setPageMeta = (meta: {
+    title?: string
+    description?: string
+    keywords?: string
+    image?: string
+    type?: string
+    structuredData?: any
+  }) => {
+    const baseTitle = 'Ratatouille - Recipe Discovery Platform'
+    const baseDescription = 'Discover and explore thousands of delicious recipes from around the world.'
+    
+    useHead({
+      title: meta.title ? `${meta.title} - ${baseTitle}` : baseTitle,
+      meta: [
+        { name: 'description', content: meta.description || baseDescription },
+        { name: 'keywords', content: meta.keywords || 'recipes, cooking, food, cuisine' },
+        { property: 'og:title', content: meta.title || baseTitle },
+        { property: 'og:description', content: meta.description || baseDescription },
+        { property: 'og:type', content: meta.type || 'website' },
+        { property: 'og:image', content: meta.image || `${config.public.siteUrl}/images/default.jpg` },
+        { name: 'twitter:title', content: meta.title || baseTitle },
+        { name: 'twitter:description', content: meta.description || baseDescription },
+        { name: 'twitter:image', content: meta.image || `${config.public.siteUrl}/images/default.jpg` }
+      ],
+      script: meta.structuredData ? [
+        {
+          type: 'application/ld+json',
+          children: JSON.stringify(meta.structuredData)
+        }
+      ] : []
+    })
+  }
+  
+  const setRecipeMeta = (recipe: Recipe) => {
+    setPageMeta({
+      title: recipe.name,
+      description: `${recipe.name}: ${recipe.description}. Cook time: ${recipe.cookTime} minutes.`,
+      keywords: `${recipe.name}, recipe, cooking, ${recipe.cuisine}`,
+      image: recipe.image,
+      type: 'article',
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'Recipe',
+        name: recipe.name,
+        description: recipe.description,
+        image: recipe.image,
+        author: { '@type': 'Organization', name: 'Ratatouille' },
+        datePublished: recipe.createdAt,
+        prepTime: `PT${recipe.prepTime}M`,
+        cookTime: `PT${recipe.cookTime}M`,
+        recipeYield: `${recipe.servings} servings`,
+        recipeCategory: recipe.cuisine,
+        recipeCuisine: recipe.cuisine
+      }
+    })
+  }
+  
+  return {
+    setPageMeta,
+    setRecipeMeta
+  }
+}
+```
+
+### Performance SEO
+```vue
+<!-- ✅ Good - Performance optimization for SEO -->
+<template>
+  <div>
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/fonts/main.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/images/hero-image.jpg" as="image">
+    
+    <!-- Lazy load non-critical images -->
+    <img 
+      v-for="recipe in recipes" 
+      :key="recipe.id"
+      :src="recipe.image"
+      :alt="recipe.name"
+      loading="lazy"
+      decoding="async"
+    />
+    
+    <!-- Optimize images for different screen sizes -->
+    <picture>
+      <source media="(min-width: 768px)" :srcset="recipe.imageLarge">
+      <source media="(min-width: 480px)" :srcset="recipe.imageMedium">
+      <img :src="recipe.imageSmall" :alt="recipe.name">
+    </picture>
+  </div>
+</template>
+```
+
+## SEO Checklist
+
+### Meta Tags
+- [ ] Title tag is unique and descriptive (50-60 characters)
+- [ ] Meta description is compelling (150-160 characters)
+- [ ] Open Graph tags for social media sharing
+- [ ] Twitter Card tags for Twitter sharing
+- [ ] Canonical URLs to prevent duplicate content
+- [ ] Robots meta tag for crawl control
+
+### Structured Data
+- [ ] Recipe schema markup for recipe pages
+- [ ] Organization schema for site information
+- [ ] Breadcrumb schema for navigation
+- [ ] Search action schema for search functionality
+- [ ] Valid JSON-LD format
+
+### Technical SEO
+- [ ] XML sitemap generation
+- [ ] Robots.txt configuration
+- [ ] Fast loading times (Core Web Vitals)
+- [ ] Mobile-friendly design
+- [ ] Secure HTTPS connection
+- [ ] Clean URL structure
+
+### Content SEO
+- [ ] Semantic HTML structure
+- [ ] Proper heading hierarchy (H1, H2, H3)
+- [ ] Alt text for all images
+- [ ] Internal linking strategy
+- [ ] Keyword optimization (natural, not stuffed)
+
+## Remember
+
+**SEO is about providing value to users while making content discoverable by search engines. Focus on quality content, fast performance, and excellent user experience.**
+
+---
+
+*This rule ensures optimal search engine visibility, social media sharing, and user discoverability.*

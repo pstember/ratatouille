@@ -1,0 +1,282 @@
+---
+description: Core testing principles and fundamental testing patterns
+globs: ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js"]
+alwaysApply: false
+---
+
+# Testing Core Principles: Fundamental Testing Patterns
+
+**THESE INSTRUCTIONS ARE CRITICAL!**
+
+They ensure high-quality, maintainable, and reliable tests through fundamental testing principles.
+
+## Core Testing Protocol
+
+### Test Structure and Organization
+```typescript
+// ✅ Good - Well-structured test file
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
+import ComponentName from '~/components/ComponentName.vue'
+import { setupTestEnvironment, cleanupTestEnvironment } from '~/tests/setup/test-utils'
+
+describe('ComponentName', () => {
+  let pinia: any
+
+  beforeEach(() => {
+    pinia = setupTestEnvironment()
+  })
+
+  afterEach(() => {
+    cleanupTestEnvironment()
+    vi.clearAllMocks()
+  })
+
+  describe('Rendering', () => {
+    it('renders correctly with required props', () => {
+      const wrapper = mount(ComponentName, {
+        props: { requiredProp: 'value' },
+        global: { plugins: [pinia] }
+      })
+
+      expect(wrapper.exists()).toBe(true)
+      expect(wrapper.text()).toContain('expected text')
+    })
+  })
+
+  describe('User Interactions', () => {
+    it('emits event when button is clicked', async () => {
+      const wrapper = mount(ComponentName, {
+        props: { requiredProp: 'value' },
+        global: { plugins: [pinia] }
+      })
+
+      await wrapper.find('button').trigger('click')
+      
+      expect(wrapper.emitted('click')).toBeTruthy()
+      expect(wrapper.emitted('click')).toHaveLength(1)
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles empty data gracefully', () => {
+      const wrapper = mount(ComponentName, {
+        props: { items: [] },
+        global: { plugins: [pinia] }
+      })
+
+      expect(wrapper.find('.empty-state').exists()).toBe(true)
+    })
+  })
+})
+```
+
+### Test Naming and Organization
+```typescript
+// ✅ Good - Descriptive test names
+describe('RecipeCard Component', () => {
+  describe('when recipe has all data', () => {
+    it('displays complete recipe information', () => {
+      // Test implementation
+    })
+  })
+
+  describe('when recipe is missing image', () => {
+    it('shows placeholder image', () => {
+      // Test implementation
+    })
+  })
+
+  describe('when user clicks recipe card', () => {
+    it('navigates to recipe detail page', async () => {
+      // Test implementation
+    })
+  })
+})
+```
+
+### Async Testing Best Practices
+```typescript
+// ✅ Good - Proper async test handling
+it('loads recipes on mount', async () => {
+  const wrapper = mount(Component, {
+    global: { plugins: [pinia] }
+  })
+
+  // Wait for async operations
+  await wrapper.vm.$nextTick()
+  await flushPromises()
+
+  expect(wrapper.find('.loading').exists()).toBe(false)
+  expect(wrapper.find('.recipe-list').exists()).toBe(true)
+})
+
+// ✅ Good - Async test functions
+it('should update component state', async () => {
+  wrapper.vm.isLoading = true
+  await wrapper.vm.$nextTick()
+  expect(wrapper.find('.loading').exists()).toBe(true)
+})
+```
+
+### Mock Management
+```typescript
+// ✅ Good - Proper mock setup and cleanup
+describe('API Integration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockFetch.mockReset()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('calls API with correct parameters', async () => {
+    mockFetch.mockResolvedValueOnce({ results: [] })
+
+    await fetchRecipes('chicken')
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/recipes'),
+      expect.objectContaining({
+        query: { q: 'chicken' }
+      })
+    )
+  })
+})
+```
+
+### Test Data Management
+```typescript
+// ✅ Good - Centralized test data
+// tests/fixtures/recipes.json
+export const mockRecipes = [
+  {
+    id: '1',
+    name: 'Chicken Pasta',
+    description: 'Delicious pasta dish',
+    ingredients: ['chicken', 'pasta', 'sauce'],
+    instructions: ['Cook chicken', 'Boil pasta', 'Combine'],
+    cookTime: 30,
+    servings: 4,
+    cuisine: 'Italian',
+    nutrition: {
+      calories: 450,
+      protein: 25,
+      carbs: 45,
+      fat: 15
+    }
+  }
+]
+
+// ✅ Good - Test utilities
+export const setupTestEnvironment = () => {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  
+  // Mock global $fetch
+  global.$fetch = vi.fn()
+  
+  return pinia
+}
+
+export const cleanupTestEnvironment = () => {
+  vi.clearAllMocks()
+  vi.restoreAllMocks()
+}
+```
+
+### Element Selection Best Practices
+```typescript
+// ✅ Good - Use findAll and find for element selection
+const buttons = wrapper.findAll('button')
+const button = buttons.find(button => button.text().includes('Discover More'))
+if (button) {
+  await button.trigger('click')
+}
+
+// ✅ Good - Test component behavior, not implementation
+const wrapper = mount(MyComponent)
+expect(wrapper.text()).toContain('Expected Text')
+
+// ❌ Wrong - Don't test internal ref values directly
+expect(wrapper.vm.count.value).toBe(0) // Avoid this
+```
+
+### Error Handling Testing
+```typescript
+// ✅ Good - Error handling testing
+it('should handle API errors gracefully', async () => {
+  const error = { data: { message: 'API Error' } }
+  mockFetch.mockRejectedValue(error)
+  
+  await wrapper.vm.fetchData()
+  await wrapper.vm.$nextTick()
+  
+  expect(wrapper.text()).toContain('Something went wrong')
+  expect(wrapper.text()).toContain('API Error')
+})
+```
+
+### Test Coverage Requirements
+```typescript
+// ✅ Good - Coverage configuration in vitest.config.ts
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'tests/',
+        'coverage/',
+        '.nuxt/',
+        '.output/',
+        'dist/',
+        '**/*.d.ts',
+        '**/*.config.*'
+      ],
+      thresholds: {
+        global: {
+          branches: 80,
+          functions: 80,
+          lines: 85,
+          statements: 85
+        }
+      }
+    }
+  }
+})
+```
+
+## Testing Principles
+
+### The Three A's of Testing
+1. **Arrange**: Set up test data and conditions
+2. **Act**: Execute the code being tested
+3. **Assert**: Verify the expected outcome
+
+### Test Isolation
+- Each test should be independent
+- Tests should not depend on each other
+- Clean up after each test
+
+### Test Readability
+- Use descriptive test names
+- Follow the Given-When-Then pattern
+- Keep tests focused and simple
+
+### Test Maintainability
+- Use test utilities and helpers
+- Centralize test data
+- Keep mocks simple and focused
+
+## Remember
+
+**Write tests that are readable, maintainable, and focused. Test behavior, not implementation. Always clean up after tests and use proper async handling.**
+
+---
+
+*This rule ensures high-quality, maintainable, and reliable tests through fundamental testing principles.*

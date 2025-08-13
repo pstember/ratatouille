@@ -1,3 +1,9 @@
+---
+description: Comprehensive testing best practices for Vue components, stores, APIs, and utilities
+globs: ["**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js", "**/tests/**/*"]
+alwaysApply: false
+---
+
 # Testing Standards: Comprehensive Testing Best Practices
 
 **THESE INSTRUCTIONS ARE CRITICAL!**

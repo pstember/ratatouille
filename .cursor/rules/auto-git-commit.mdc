@@ -1,27 +1,70 @@
 ---
-description: Automatic Git commits with conventional commit format after Cursor changes
-globs: ["**/*"]
-alwaysApply: false
+description: Git commit guidelines with conventional commits and Git Flow workflow
+alwaysApply: true
 ---
-# Auto Git Commit: Automatic Conventional Commits
+# Git Commit Guidelines: Conventional Commits with Git Flow
 
-**THESE INSTRUCTIONS ARE CRITICAL!**
+When working with Git in this project, always validate branch context and scope:
 
-They ensure consistent, meaningful Git history by automatically committing changes with proper conventional commit messages.
+## Branch Context Validation
 
-## Automatic Commit Protocol
+**BEFORE starting any work, always check:**
 
-After **EVERY** change performed by Cursor, **ALWAYS** automatically commit the modified files to Git.
+1. **Current branch status**: Verify you're on the correct branch for the task
+2. **Scope alignment**: Ensure the requested changes align with the current branch's purpose
+3. **Session continuity**: Check if this is a continuation of previous work or a new scope
 
-### Commit Process
-1. **Stage all changed files** automatically
-2. **Create conventional commit message** based on the change type
-3. **Include detailed explanation** of what was changed and why
-4. **Reference the original prompts** that led to the changes
+### Branch Validation Checklist
+
+**For each new prompt or chat session:**
+- [ ] Confirm current branch is appropriate for the requested changes
+- [ ] Check if changes align with branch naming convention
+- [ ] Verify if this is a continuation of previous work
+- [ ] Alert user if scope seems to have changed significantly
+
+### Scope Change Detection
+
+**Alert the user when:**
+- Requested changes don't match current branch name/type
+- Changes seem to expand beyond original feature scope
+- Multiple unrelated features are being requested
+- User might benefit from creating a new branch
+
+**Example alerts:**
+- "You're currently on `feature/user-auth` but requesting recipe search changes. Consider creating a new `feature/recipe-search` branch?"
+- "This change seems to expand beyond the original feature scope. Should we create a separate branch for this functionality?"
+- "Multiple features detected. Consider splitting into separate branches for better organization."
+
+## Git Flow Workflow
+
+Follow Git Flow principles for proper branch management:
+
+### Branch Strategy
+- **main**: Production-ready code
+- **develop**: Integration branch for features
+- **feature/***: New features (branch from develop)
+- **hotfix/***: Urgent production fixes (branch from main)
+- **release/***: Release preparation (branch from develop)
+
+### When to Create Branches
+- **New features**: Create `feature/feature-name` branch
+- **Bug fixes**: Create `fix/bug-description` branch  
+- **Hotfixes**: Create `hotfix/urgent-fix` branch
+- **Documentation**: Create `docs/description` branch
+
+## Commit Guidelines
+
+**CRITICAL**: Commits should be intentional and user-approved, not automatic.
+
+### When to Commit
+- After completing a logical unit of work
+- Before switching to a different task
+- When changes are ready for review
+- After resolving conflicts
 
 ### Conventional Commit Format
 
-Use the standard conventional commit format for the commit title:
+Use standard conventional commit format:
 
 ```
 <type>[optional scope]: <description>
@@ -75,31 +118,46 @@ Generated from prompt: "Add nutritional information display to recipe cards"
 Technical decisions: Used flexbox layout for responsive design
 ```
 
-### Implementation Steps
+## AI-Assisted Development Workflow
 
-1. **After any file modification**:
-   - Stage all changed files: `git add .`
-   - Analyze the changes made
-   - Determine the appropriate commit type
-   - Craft descriptive commit message
+### Session Start Protocol
+1. **Branch Context Check**:
+   - Check current branch: `git branch --show-current`
+   - Verify branch aligns with requested changes
+   - Alert if scope mismatch detected
 
-2. **Commit with detailed message**:
-   - Use conventional commit format for title
-   - Include body explaining changes and reasoning
-   - Reference original user prompts
+2. **Scope Continuity Check**:
+   - Ask: "Is this a continuation of previous work or a new scope?"
+   - If new scope: suggest appropriate branch creation
+   - If continuation: confirm we're still on the right track
 
-3. **Verify commit**:
-   - Check that all intended changes are included
-   - Ensure commit message is clear and descriptive
+### Development Process
+1. **Before Starting Work**:
+   - Confirm current branch is appropriate for the work
+   - If not, suggest creating the correct branch first
+   - Get user confirmation before proceeding
 
-### Prompt Analysis
+2. **During Development**:
+   - Make changes as requested
+   - Monitor for scope creep
+   - Stage files when logical units are complete
+   - **Ask for user approval before committing**
 
-When creating commit messages, analyze:
-- **Original user request** - what was asked for
-- **Files modified** - which files were changed
-- **Change type** - feature, fix, refactor, etc.
-- **Technical approach** - how the solution was implemented
-- **User intent** - why the change was requested
+3. **Before Committing**:
+   - Review all changes for scope alignment
+   - Craft appropriate commit message
+   - Get user confirmation
+
+4. **After Committing**:
+   - Consider if branch should be pushed
+   - Consider if pull request should be created
+   - Suggest next steps for the feature
+
+### Multi-Session Coordination
+- **Track feature progress** across chat sessions
+- **Reference previous work** when continuing features
+- **Alert on scope changes** between sessions
+- **Suggest branch organization** for complex features
 
 ### Commit Message Template
 
@@ -114,10 +172,35 @@ Generated from prompt: "<original user request>"
 Technical decisions: <key technical choices made>
 ```
 
+## Branch Management Commands
+
+### Creating Feature Branches
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/feature-name
+```
+
+### Committing Changes
+```bash
+git add .
+git commit -m "feat(scope): description"
+```
+
+### Merging Feature Branches
+```bash
+git checkout develop
+git merge feature/feature-name
+git branch -d feature/feature-name
+```
+
 ## Remember
 
-**Always commit changes automatically after every Cursor modification. Use conventional commit format and explain the reasoning behind changes to maintain clear, meaningful Git history.**
+**Git commits should be intentional and meaningful. Always validate branch context and scope before starting work, especially across multiple chat sessions. The goal is clean, maintainable Git history that supports team collaboration and code review processes.**
 
----
-
-*This rule ensures consistent Git practices and maintains a clear audit trail of all AI-generated changes.*
+### Key Principles
+- **Always check branch context** before starting work
+- **Alert on scope mismatches** between branch and requested changes
+- **Coordinate across sessions** to maintain feature continuity
+- **Suggest proper branch organization** for complex features
+- **Ask for user approval** before committing or creating branches

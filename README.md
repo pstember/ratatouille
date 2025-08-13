@@ -18,6 +18,13 @@ A modern, fast, and responsive web application for discovering and exploring cul
 - 🛡️ **API Quota Protection**: Smart quota monitoring with user confirmation when approaching daily limits
 - 🔄 **Graceful Fallbacks**: Cached data display when API limits are reached
 - 📅 **Daily Reset**: Automatic quota tracking reset at midnight UTC
+- 🔍 **Browse Recipes**: Comprehensive recipe browsing with advanced filtering options
+- 🌟 **Discover Feature**: Random recipe discovery with nutritional information
+- 📱 **Offline Support**: Offline indicator and cached data access
+- 🚨 **Allergen Information**: Recipe allergen badges and warnings
+- 📋 **Recipe Instructions**: Step-by-step cooking instructions
+- 🎯 **Search Source Indicator**: Shows whether results are from API or cached data
+- 💾 **Database-First Search**: Prioritizes cached data for faster responses
 
 ## Tech Stack
 
@@ -100,20 +107,41 @@ ratatouille/
 │   ├── NutritionalInfo.vue # Nutrition display
 │   ├── NutritionBadge.vue  # Nutrition badge
 │   ├── NutritionCard.vue   # Nutrition card
-│   └── NewBadge.vue        # New recipe indicator
+│   ├── NewBadge.vue        # New recipe indicator
+│   ├── AllergenBadge.vue   # Allergen warning badges
+│   ├── RecipeInstructions.vue # Step-by-step instructions
+│   ├── QuotaGauge.vue     # API quota monitoring display
+│   ├── QuotaConfirmationModal.vue # Quota confirmation dialog
+│   ├── ApiErrorMessage.vue # API error display component
+│   ├── SearchSourceIndicator.vue # Shows data source (API/cache)
+│   └── OfflineIndicator.vue # Offline status indicator
 ├── pages/               # Application pages
 │   ├── index.vue        # Recipe search page with filters
+│   ├── browse.vue       # Comprehensive recipe browsing
+│   ├── discover.vue     # Random recipe discovery
+│   ├── offline.vue      # Offline page
 │   └── recipe/[id].vue  # Recipe detail page
 ├── stores/              # Pinia stores
 │   ├── recipes.ts       # Recipe search state and filtering
-│   └── currentRecipe.ts # Individual recipe state
+│   ├── currentRecipe.ts # Individual recipe state
+│   └── quota.ts         # API quota management
 ├── server/              # Server-side code
 │   ├── api/             # API routes with category filtering
+│   │   ├── recipes/     # Recipe-specific endpoints
+│   │   ├── quota.ts     # Quota management endpoint
+│   │   └── health.ts    # Health check endpoint
 │   ├── database/        # Database configuration
-│   └── utils/           # Server utilities and caching
+│   ├── utils/           # Server utilities and caching
+│   └── services/        # Business logic services
 ├── types/               # TypeScript type definitions
 ├── prisma/              # Database schema and migrations
-└── assets/              # Static assets
+├── tests/               # Test suite
+│   ├── unit/           # Unit tests
+│   ├── integration/    # Integration tests
+│   └── e2e/            # End-to-end tests
+├── specs/              # Feature specifications
+├── scripts/            # Utility scripts
+└── assets/             # Static assets
 ```
 
 ## Recipe Categories & Filters
@@ -144,8 +172,12 @@ The application provides comprehensive filtering options:
 ## API Endpoints
 
 - `GET /api/recipes` - Search for recipes with category filtering
-- `GET /api/recipe/[id]` - Get recipe details
+- `GET /api/recipes/browse` - Browse recipes with advanced filtering
+- `GET /api/recipes/random` - Get random recipe with nutrition data
 - `GET /api/recipes/new` - Get recently added recipes
+- `GET /api/recipe/[id]` - Get recipe details
+- `GET /api/quota` - Get current API quota status
+- `GET /api/health` - Health check endpoint
 
 ## Database Schema
 
@@ -156,6 +188,7 @@ The application uses the following main tables:
 - **nutrition**: Nutritional data for recipes
 - **cache**: API response caching with TTL
 - **search**: Search query caching
+- **quota_usage**: Daily API quota tracking and management
 
 ## Development
 
@@ -183,9 +216,12 @@ npm run build
 npm run preview
 
 # Testing
-npm run test:unit        # Run unit tests
+npm test              # Run all tests
+npm run test:unit     # Run unit tests
 npm run test:integration # Run integration tests
-npm run test:coverage    # Run tests with coverage
+npm run test:coverage # Run tests with coverage
+npm run test:ui       # Run tests with UI
+npm run test:watch    # Run tests in watch mode
 
 # Database
 npx prisma studio    # Open database GUI
@@ -226,6 +262,24 @@ The project uses:
 - **Enhanced API Integration**: Added individual recipe API calls to fetch complete nutrition data for random recipes
 - **Fallback Handling**: Graceful fallback to basic recipe data if nutrition fetch fails
 - **Performance Optimization**: Maintained caching while ensuring complete data integrity
+
+### Quota Management System
+- **Database-Backed Storage**: Implemented persistent quota tracking with automatic daily reset
+- **Real-Time Monitoring**: Live quota gauge with smooth animations and user confirmation
+- **Smart Thresholds**: Automatic confirmation prompts at 85% quota usage
+- **Graceful Degradation**: Fallback to cached data when quota is exceeded
+- **User-Friendly Interface**: Clear quota status display with progress indicators
+
+### Browse and Discover Features
+- **Comprehensive Browsing**: Advanced recipe browsing with multiple filter options
+- **Random Discovery**: Enhanced discover feature with complete nutrition data
+- **Offline Support**: Offline indicator and cached data access
+- **Search Source Tracking**: Visual indicators showing data source (API vs cache)
+
+### Allergen and Instruction Support
+- **Allergen Badges**: Visual allergen warnings for recipe safety
+- **Step-by-Step Instructions**: Detailed cooking instructions with proper formatting
+- **Enhanced Recipe Details**: Complete recipe information display
 
 ## Deployment
 
