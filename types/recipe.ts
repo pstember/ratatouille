@@ -86,6 +86,7 @@ export interface RecipeSearchResult {
   allergens?: DatabaseAllergen[]
   ingredients?: DatabaseIngredient[]
   isNew: boolean
+  _source?: 'database' | 'api' | 'cache'
 }
 
 export interface RecipeSearchParams {
@@ -107,13 +108,19 @@ export interface QuotaInfo {
   dailyUsage: number
 }
 
+export interface QuotaWarning {
+  message: string
+  percentageUsed: number
+  quotaLeft: number
+}
+
 export interface RecipeSearchResponse {
   results: RecipeSearchResult[]
   offset: number
   number: number
   totalResults: number
   quotaInfo?: QuotaInfo
-  quotaWarning?: any
+  quotaWarning?: QuotaWarning
   requiresQuotaConfirmation?: boolean
 }
 
@@ -123,7 +130,7 @@ export interface RandomRecipeResponse {
   source: 'api' | 'database' | 'cache'
   cached: boolean
   quotaInfo?: QuotaInfo
-  quotaWarning?: any
+  quotaWarning?: QuotaWarning
   requiresQuotaConfirmation?: boolean
 }
 
@@ -144,13 +151,27 @@ export interface SpoonacularRecipe {
   nutrition?: SpoonacularNutrition
 }
 
+export interface SpoonacularInstructionIngredient {
+  id: number
+  name: string
+  localizedName?: string
+  image?: string
+}
+
+export interface SpoonacularInstructionEquipment {
+  id: number
+  name: string
+  localizedName?: string
+  image?: string
+}
+
 export interface SpoonacularInstruction {
   name: string
   steps: {
     number: number
     step: string
-    ingredients?: any[]
-    equipment?: any[]
+    ingredients?: SpoonacularInstructionIngredient[]
+    equipment?: SpoonacularInstructionEquipment[]
   }[]
 }
 

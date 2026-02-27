@@ -69,8 +69,8 @@ export const useRecipesStore = defineStore('recipes', () => {
 
       // Update search state
       searchState.value = {
-        databaseResults: response.databaseResults?.count ? response.results.filter(r => (r as any)._source === 'database') : [],
-        apiResults: response.results.filter(r => !(r as any)._source || (r as any)._source === 'api'),
+        databaseResults: response.databaseResults?.count ? response.results.filter(r => r._source === 'database') : [],
+        apiResults: response.results.filter(r => !r._source || r._source === 'api'),
         searchSource: response.searchSource || 'database',
         showSpoonacularOption: !!response.spoonacularOption?.available,
         estimatedApiCost: response.spoonacularOption?.estimatedCost || 0,
@@ -96,7 +96,6 @@ export const useRecipesStore = defineStore('recipes', () => {
         selectedCategory.value = params.category
       }
     } catch (err: any) {
-      console.error('Recipe search error:', err)
       
       if (err.message === 'QUOTA_CONFIRMATION_REQUIRED') {
         // This will be handled by the UI to show the confirmation modal
@@ -201,7 +200,6 @@ export const useRecipesStore = defineStore('recipes', () => {
         selectedCategory.value = params.category
       }
     } catch (err: any) {
-      console.error('Database search error:', err)
       errorType.value = 'GENERIC_ERROR'
       error.value = err.data?.message || 'Database search failed. Please try again.'
     } finally {
@@ -255,7 +253,6 @@ export const useRecipesStore = defineStore('recipes', () => {
       searchQuery.value = searchParams.query || ''
       
     } catch (err: any) {
-      console.error('Spoonacular search error:', err)
       
       if (err.statusCode === 429) {
         errorType.value = 'RATE_LIMIT_EXCEEDED'
@@ -279,7 +276,6 @@ export const useRecipesStore = defineStore('recipes', () => {
       recipes.value = response.results
       totalResults.value = response.totalResults
     } catch (error) {
-      console.error('Failed to execute confirmed request:', error)
     }
   }
 
@@ -332,7 +328,6 @@ export const useRecipesStore = defineStore('recipes', () => {
       searchQuery.value = searchParams.query || ''
       
     } catch (err: any) {
-      console.error('Spoonacular search error:', err)
       
       if (err.statusCode === 429) {
         errorType.value = 'RATE_LIMIT_EXCEEDED'
@@ -431,7 +426,6 @@ export const useRecipesStore = defineStore('recipes', () => {
 
   // Debounced search function
   const debouncedSearch = useDebounceFn((query: string, mode?: 'database' | 'spoonacular') => {
-    console.log('🔍 debouncedSearch called with query:', query, 'mode:', mode)
     if (query.trim()) {
       const searchModeToUse = mode || searchMode.value
       if (searchModeToUse === 'database') {

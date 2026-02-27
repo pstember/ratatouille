@@ -5,11 +5,8 @@ import { getAllergenInfo } from '~/types/allergen'
 import { QuotaService } from '../utils/quota-service'
 import { ApiErrorHandler } from '../utils/api-error-handler'
 import { getCachedRecipes } from '../utils/cache-fallback'
-import { transformAndStoreRecipe, transformDatabaseRecipes } from '../utils/recipe-transformer'
+import { transformAndStoreRecipe, transformDatabaseRecipes, getCategoryFilter } from '../utils/recipe-transformer'
 import { databaseSearchService } from '../utils/database-search'
-
-// Debug import
-console.log('🔧 Database search service imported:', !!databaseSearchService)
 import type { RecipeSearchParams, RecipeSearchResponse, SpoonacularRecipe, RecipeFilter } from '~/types/recipe'
 import type { EnhancedSearchResponse, DatabaseSearchParams } from '~/types/search'
 
@@ -43,7 +40,6 @@ export default defineEventHandler(async (event): Promise<EnhancedSearchResponse>
   }
 
   try {
-    console.log('🔍 Starting database-first search with params:', searchParams)
     
     // Phase 1: Database Search First
     const databaseParams: DatabaseSearchParams = {
@@ -54,23 +50,15 @@ export default defineEventHandler(async (event): Promise<EnhancedSearchResponse>
       filters: searchParams.category ? getCategoryFilters(searchParams.category) : undefined
     }
 
-    console.log('📊 Database search params:', databaseParams)
     
     let databaseResult
     try {
       databaseResult = await databaseSearchService.searchRecipes(databaseParams)
-      console.log('📊 Database search result:', {
-        count: databaseResult.recipes.length,
-        totalCount: databaseResult.totalCount,
-        source: databaseResult.source
-      })
     } catch (error) {
-      console.error('❌ Database search error:', error)
       throw error
     }
     
     const transformedDatabaseResults = transformDatabaseRecipes(databaseResult.recipes)
-    console.log('🔄 Transformed database results count:', transformedDatabaseResults.length)
     
     // Phase 2: Assess Result Quality
     const qualityAssessment = databaseSearchService.assessResultQuality(
@@ -179,7 +167,6 @@ export default defineEventHandler(async (event): Promise<EnhancedSearchResponse>
     await cacheService.set(cacheKey, result, { type: 'database_search_with_option' })
     return result
   } catch (error) {
-    console.error('Recipe search error:', error)
     
     // Handle rate limit errors specifically
     if (ApiErrorHandler.isRateLimitError(error)) {
@@ -274,7 +261,7 @@ async function getPopularRecipes(params: RecipeSearchParams): Promise<EnhancedSe
  * Get category filters for database search
  */
 function getCategoryFilters(category: string) {
-  const { getCategoryFilter } = require('../utils/recipe-transformer')
+  
   const filter = getCategoryFilter(category)
   
   if (!filter) return undefined
@@ -308,7 +295,7 @@ async function performSpoonacularSearch(searchParams: RecipeSearchParams, config
 
   // Add category-specific filters
   if (searchParams.category) {
-    const { getCategoryFilter } = await import('../utils/recipe-transformer')
+    
     const filter = getCategoryFilter(searchParams.category)
     if (filter) {
       if (filter.maxTime) {

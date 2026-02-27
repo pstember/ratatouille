@@ -34,7 +34,6 @@ export const useCurrentRecipeStore = defineStore('currentRecipe', () => {
       cached.value = response.cached
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch recipe'
-      console.error('Recipe fetch error:', err)
     } finally {
       loading.value = false
     }

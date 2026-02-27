@@ -12,7 +12,6 @@ export const useQuotaStore = defineStore('quota', () => {
     if (response && response.quotaInfo) {
       quotaInfo.value = response.quotaInfo
       requiresConfirmation.value = response.requiresQuotaConfirmation || false
-      console.log('Updated quota info from API response:', response.quotaInfo)
     }
   }
   
@@ -62,7 +61,6 @@ export const useQuotaStore = defineStore('quota', () => {
         requiresConfirmation.value = false
       }
     } catch (error) {
-      console.error('Failed to load quota info:', error)
       // Don't throw error, just log it - quota info is not critical for app functionality
     }
   }
@@ -79,7 +77,6 @@ export const useQuotaStore = defineStore('quota', () => {
     setTimeout(() => {
       quotaInfo.value = null
       requiresConfirmation.value = false
-      console.log('Daily quota tracking reset')
     }, timeUntilReset)
   }
   

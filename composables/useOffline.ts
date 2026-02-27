@@ -11,10 +11,8 @@ export function useOffline() {
     
     if (isOnline.value && !wasOnline) {
       lastOnline.value = new Date()
-      console.log('Back online at:', lastOnline.value)
     } else if (!isOnline.value && wasOnline) {
       lastOffline.value = new Date()
-      console.log('Went offline at:', lastOffline.value)
     }
   }
 

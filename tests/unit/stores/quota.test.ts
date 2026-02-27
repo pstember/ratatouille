@@ -159,14 +159,14 @@ describe('useQuotaStore', () => {
       const store = useQuotaStore()
       const mockDate = new Date('2024-01-15T10:30:00Z')
       vi.setSystemTime(mockDate)
-      
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      
+
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
+
       store.resetDailyQuota()
 
-      // Verify setTimeout was called (we can't easily test the exact timing)
-      expect(consoleSpy).not.toHaveBeenCalled() // Should not log immediately
-      
+      // Verify setTimeout was called with appropriate timing
+      expect(setTimeoutSpy).toHaveBeenCalled()
+
       vi.useRealTimers()
     })
 
@@ -174,25 +174,23 @@ describe('useQuotaStore', () => {
       const store = useQuotaStore()
       store.quotaInfo.value = { quotaUsed: 100 } as any
       store.requiresConfirmation.value = true
-      
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
       const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
-      
+
       // Manually trigger the reset logic
       store.resetDailyQuota()
-      
+
       // Verify setTimeout was called
       expect(setTimeoutSpy).toHaveBeenCalled()
-      
+
       // Get the callback function
       const callback = setTimeoutSpy.mock.calls[0][0] as Function
-      
+
       // Execute the callback
       callback()
-      
+
       expect(store.quotaInfo.value).toBeNull()
       expect(store.requiresConfirmation.value).toBe(false)
-      expect(consoleSpy).toHaveBeenCalledWith('Daily quota tracking reset')
     })
   })
 

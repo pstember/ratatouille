@@ -27,7 +27,6 @@ export default defineNuxtPlugin(() => {
       }
     } catch (error) {
       // Ignore errors when trying to parse response
-      console.debug('Could not parse response for quota info:', error)
     }
     
     return response
@@ -36,22 +35,23 @@ export default defineNuxtPlugin(() => {
   // Also intercept $fetch calls
   const original$fetch = globalThis.$fetch
   if (original$fetch) {
-    globalThis.$fetch = async function(input: any, options?: any) {
+    globalThis.$fetch = async function<T = unknown>(input: string | Request | URL, options?: RequestInit): Promise<T> {
       try {
-        const response = await original$fetch(input, options)
-        
+        const response = await original$fetch<T>(input, options)
+
         // Update quota information if present in the response
         if (response && response.quotaInfo) {
           quotaStore.updateQuotaFromResponse(response)
         }
-        
+
         return response
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle error responses and extract quota information
-        if (error.data && error.data.quotaInfo) {
-          quotaStore.updateQuotaFromResponse({ quotaInfo: error.data.quotaInfo })
+        const err = error as { data?: { quotaInfo?: unknown } }
+        if (err.data && err.data.quotaInfo) {
+          quotaStore.updateQuotaFromResponse({ quotaInfo: err.data.quotaInfo })
         }
-        
+
         // Re-throw the error
         throw error
       }

@@ -217,7 +217,7 @@ function transformNutrition(spoonacularNutrition?: any) {
   return nutrition
 }
 
-function getCategoryFilter(categoryId: string): any {
+export function getCategoryFilter(categoryId: string): any {
   const categoryFilters: Record<string, any> = {
     quick: { maxTime: 20 },
     italian: { cuisine: 'italian' },

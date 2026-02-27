@@ -1,8 +1,6 @@
 import { getServerSession } from '#auth'
-import { PrismaClient } from '@prisma/client'
 import type { RecipeSearchResult } from '~/types/recipe'
-
-const prisma = new PrismaClient()
+import { prisma } from '~/server/database/client'
 
 interface RecipeFilters {
   categories?: string[]
@@ -89,7 +87,6 @@ export default defineEventHandler(async (event): Promise<BrowseResponse> => {
     // Dietary filter - not implemented yet as fields don't exist in schema
     // TODO: Add dietary fields to schema or implement alternative filtering
     if (filters.dietary && filters.dietary.length > 0) {
-      console.log('Dietary filtering not implemented yet')
     }
 
     // Allergen exclusion filter
@@ -208,10 +205,10 @@ export default defineEventHandler(async (event): Promise<BrowseResponse> => {
     }
 
   } catch (error) {
-    console.error('Browse recipes error:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to browse recipes'
+      statusMessage: 'Failed to browse recipes',
+      cause: error
     })
   }
 })
@@ -260,7 +257,7 @@ async function getAvailableFilters() {
       dietaryOptions
     }
   } catch (error) {
-    console.error('Error getting available filters:', error)
+    
     return {
       cuisines: [],
       categories: [],

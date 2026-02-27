@@ -24,7 +24,6 @@
     "nuxt": "^4.0.3",
     "pinia": "^3.0.3",
     "prisma": "^6.13.0",
-    "spoonacular": "^2.0.2",
     "tailwindcss": "^3.4.17",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
@@ -37,6 +36,7 @@
     "@vue/test-utils": "^2.4.6",
     "jsdom": "^26.1.0",
     "msw": "^2.10.4",
+    "spoonacular": "^2.0.2",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
   }
